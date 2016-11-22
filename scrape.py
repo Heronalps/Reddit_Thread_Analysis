@@ -58,7 +58,7 @@ def consumerFunc(rq, wq):
 
 def main(argv):
 	parser = argparse.ArgumentParser()
-	parser.add_argument("file", help="name of file with list of queries. file should have format sub")
+	parser.add_argument("file", help="name of file with list of queries. file should have format sub starttime endtime (split by delimiter)")
 	parser.add_argument("-d", "--delim", help="delimiter used in query file (default: \' \')")
 	parser.add_argument("-n", "--numworkers", help="number of worker threads (default: 10)")
 	args = parser.parse_args()
