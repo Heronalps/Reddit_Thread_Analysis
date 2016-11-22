@@ -31,9 +31,9 @@ def parseFile(file, delim):
 		lines = f.readlines()
 	return [Query(l.split(delim)[0],l.split(delim)[1],l.split(delim)[2]) for l in lines]
 
-def makeRequest(query):
-	# TODO: implement python api call for subreddit sub from start time to end time
-	return None
+def makeRequest(reddit, query):
+	srch = "timestamp:" + query.start + ".." + query.end
+	return reddit.search(srch, subreddit=query.sub, sort='top',syntax='cloudsearch')
 
 def producerFunc(rq, queries):
 	for query in queries:
@@ -42,6 +42,7 @@ def producerFunc(rq, queries):
 
 
 def consumerFunc(rq, wq):
+	reddit = praw.Reddit(user_agent="Sentiment Analyzer 1.0 by /u/FacialHare")
 	while True:
 		try:
 			query = rq.get_nowait()
@@ -51,9 +52,10 @@ def consumerFunc(rq, wq):
 				return
 			else:
 				continue
-		res = makeRequest(query)
-		if res is not None:
-			wq.put(res)
+		gen = makeRequest(reddit, query)
+		if gen is not None:
+			for p in gen:
+				wq.put(p)
 			
 
 def main(argv):
