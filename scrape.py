@@ -62,7 +62,24 @@ def consumerFunc(rq, wq):
 		print ("found {0} threads".format(len(list(gen))))
 		if gen is not None:
 			for p in gen:
+				print("puting obj on queue")
 				wq.put(p)
+
+def testWriterFunc(queries, wq):
+	while True:
+		try:
+			thread = wq.get_nowait()
+		except:
+			print("Write queue empty")
+			if getDone():
+				return
+			else:
+				continue
+		name = string(thread.subreddit)
+		f = open(name, "a")
+		for comment in thread.comments:
+				if type(comment).__name__ == "Comment":
+					f.write(comment.body)
 
 	
 
@@ -95,7 +112,7 @@ def main(argv):
 		consumer.start()
 	producer.join()
 	print("producer thread closed")
-	print(getDone())
+	print((wq.qsize()))
 	for c in consumers:
 		c.join()
 	print("Exiting main thread")
