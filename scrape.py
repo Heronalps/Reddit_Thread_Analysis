@@ -1,6 +1,8 @@
 import sys
 import threading
 import argparse
+import queue
+import praw
 
 done = False
 lock = threading.Lock()
@@ -16,11 +18,13 @@ class Query:
 
 
 def setDone(val):
+	global done
 	lock.acquire()
 	done = val
 	lock.release()
 
 def getDone():
+	global done
 	lock.acquire()
 	d = done
 	lock.release()
@@ -38,6 +42,7 @@ def makeRequest(reddit, query):
 def producerFunc(rq, queries):
 	for query in queries:
 		rq.put(query)
+	print("no more queries")
 	setDone(True)
 
 
@@ -47,22 +52,26 @@ def consumerFunc(rq, wq):
 		try:
 			query = rq.get_nowait()
 		except:
-			print("Read queue empty")
+			#print("Read queue empty")
 			if getDone():
 				return
 			else:
+				#print("Not done yet")
 				continue
 		gen = makeRequest(reddit, query)
+		print ("found {0} threads".format(len(list(gen))))
 		if gen is not None:
 			for p in gen:
 				wq.put(p)
-			
+
+	
 
 def main(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("file", help="name of file with list of queries. file should have format sub starttime endtime (split by delimiter)")
 	parser.add_argument("-d", "--delim", help="delimiter used in query file (default: \' \')")
 	parser.add_argument("-n", "--numworkers", help="number of worker threads (default: 10)")
+	parser.add_argument("-t", "--test", help="tests opperation and writes data to file")
 	args = parser.parse_args()
 	
 	file = args.file
@@ -74,8 +83,8 @@ def main(argv):
 		numworkers = args.numworkers
 	else:
 		numworkers = 10
-	rq = Queue()
-	wq = Queue()
+	rq = queue.Queue()
+	wq = queue.Queue()
 	queries = parseFile(file, delim)
 	producer = threading.Thread(target=producerFunc, args = (rq, queries))
 	producer.start()
@@ -85,6 +94,8 @@ def main(argv):
 		consumers.append(consumer)
 		consumer.start()
 	producer.join()
+	print("producer thread closed")
+	print(getDone())
 	for c in consumers:
 		c.join()
 	print("Exiting main thread")
