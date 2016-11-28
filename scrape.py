@@ -10,12 +10,15 @@ lock = threading.Lock()
 class Thread:
 	def __init__(self, thread):
 		self.subreddit = thread.subreddit
+		self.threadid = thread.id
 		self.title = thread.title
 		self.time = thread.created_utc
 		self.domain = thread.domain
 		self.upvotes = thread.ups
 		self.comments = thread.comments
 		self.selftext = thread.selftext
+		self.selfpost = thread.is_self
+		self.user = thread.author.name
 			
 		
 		
@@ -67,30 +70,27 @@ def consumerFunc(rq, wq):
 		try:
 			query = rq.get_nowait()
 		except:
-			#print("Read queue empty")
-			if getDone():
-				return
-			else:
-				#print("Not done yet")
-				continue
-		gen = makeRequest(reddit, query)
-		print ("found {0} threads".format(len(list(gen))))
-		if gen is not None:
-			for p in gen:
-				print("puting obj on queue")
-				wq.put(p)
-
-def testWriterFunc(queries, wq):
-	while True:
-		try:
-			thread = wq.get_nowait()
-		except:
 			print("Write queue empty")
 			if getDone():
 				return
 			else:
 				continue
-		name = string(thread.subreddit)
+		gen = makeRequest(reddit, query)
+		#print ("found {0} threads".format(len(list(gen))))
+		if gen is not None:
+			for p in gen:
+				thread = Thread(p)
+				print("puting obj on queue")
+				wq.put(thread)
+
+def testWriterFunc(wq):
+	print("set up test")
+	while (wq.empty() == False):
+		thread = wq.get_nowait()
+		if (thread == "STOP"):
+			return
+		print("grab from queue")
+		name = str(thread.subreddit)
 		f = open(name, "a")
 		for comment in thread.comments:
 				if type(comment).__name__ == "Comment":
@@ -120,6 +120,9 @@ def main(argv):
 	queries = parseFile(file, delim)
 	producer = threading.Thread(target=producerFunc, args = (rq, queries))
 	producer.start()
+	if(args.test):
+		tester = threading.Thread(target=testWriterFunc, args = (wq,))
+		tester.start()
 	consumers = []
 	for i in range(0, numworkers):
 		consumer = threading.Thread(target=consumerFunc, args = (rq, wq))
@@ -130,8 +133,9 @@ def main(argv):
 	print((wq.qsize()))
 	for c in consumers:
 		c.join()
+	wq.put("STOP")
+	if(args.test):
+		tester.join()
 	print("Exiting main thread")
-
-
 if __name__ == "__main__":
 	main(sys.argv[1:])
