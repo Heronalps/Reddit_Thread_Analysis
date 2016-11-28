@@ -35,7 +35,7 @@ def query(session, topic, sentiment):
 	return threads
 	
 def makeSession():
-	engine = create_engine('sqlite:///sqlalchemy_example.db')
+	engine = create_engine('sqlite:///reddit.db')
 	Base.metadata.bind = self.engine
 	DBSession = sessionmaker(bind = self.engine)
 	session = DBSession()
