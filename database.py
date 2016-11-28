@@ -34,6 +34,11 @@ def query(session, topic, sentiment):
 		threads.append(thread)
 	return threads
 	
+def addThread(session, tpc, sntmnt, thrd):
+	t = Threads(threadid = thrd.threadid, topic=tpc, sentiment = sntmnt, title = thrd.title, time = thrd.time, subreddit = thrd.subreddit, selfpost = thrd.selfpost, selftext = thrd.selftext, domain = thrd.domain, upvotes = thrd.upvotes, comments = thrd.comments, user = thrd.user)
+	session.add(t)
+	session.commit()
+	
 if __name__ == "__main__":
 	create()
 	exit()
