@@ -7,6 +7,21 @@ import praw
 done = False
 lock = threading.Lock()
 
+class Thread:
+	def __init__(self, thread):
+		self.subreddit = thread.subreddit
+		self.title = thread.title
+		self.time = thread.created_utc
+		self.domain = thread.domain
+		self.upvotes = thread.ups
+		self.comments = thread.comments
+		self.selftext = thread.selftext
+			
+		
+		
+	def addComment(self, comment):
+		self.comments.append(comment)
+
 class Query:
 	def __init__(self, sub, start, end):
 		# subreddit (string)
