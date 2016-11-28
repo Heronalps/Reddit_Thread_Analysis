@@ -1,11 +1,11 @@
 import sys
-import threading
+import multiprocessing as mp
 import argparse
 import queue
 import praw
 
 done = False
-lock = threading.Lock()
+lock = mp.Lock()
 
 class Thread:
 	def __init__(self, thread):
@@ -57,37 +57,36 @@ def makeRequest(reddit, query):
 	srch = "timestamp:" + query.start + ".." + query.end
 	return reddit.search(srch, subreddit=query.sub, sort='top',syntax='cloudsearch')
 
-def producerFunc(rq, queries):
+def producerFunc(numworkers, rq, queries):
 	for query in queries:
 		rq.put(query)
 	print("no more queries")
-	setDone(True)
+	for i in range(numworkers):
+		rq.put("STOP")
+
+
 
 
 def consumerFunc(rq, wq):
 	reddit = praw.Reddit(user_agent="Sentiment Analyzer 1.0 by /u/FacialHare")
 	while True:
-		try:
-			query = rq.get_nowait()
-		except:
-			print("Write queue empty")
-			if getDone():
+		if (rq.empty() == False):
+			query = rq.get()
+			if (query == "STOP"):
 				return
-			else:
-				continue
-		gen = makeRequest(reddit, query)
-		#print ("found {0} threads".format(len(list(gen))))
-		if gen is not None:
-			for p in gen:
-				thread = Thread(p)
-				print("puting obj on queue")
-				wq.put(thread)
+			gen = makeRequest(reddit, query)
+			#print ("found {0} threads".format(len(list(gen))))
+			if gen is not None:
+				for p in gen:
+					thread = Thread(p)
+					print("puting obj on queue")
+					wq.put(thread)
 
 def testWriterFunc(wq):
 	print("set up test")
 	while True:
 		if (wq.empty() == False):
-			thread = wq.get_nowait()
+			thread = wq.get()
 			if (thread == "STOP"):
 				return
 			#print("grab from queue")
@@ -118,17 +117,17 @@ def main(argv):
 		numworkers = int(args.numworkers)
 	else:
 		numworkers = 10
-	rq = queue.Queue()
-	wq = queue.Queue()
+	rq = mp.Queue()
+	wq = mp.Queue()
 	queries = parseFile(file, delim)
-	producer = threading.Thread(target=producerFunc, args = (rq, queries))
+	producer = mp.Process(target=producerFunc, args = (numworkers, rq, queries))
 	producer.start()
 	if(args.test):
-		tester = threading.Thread(target=testWriterFunc, args = (wq,))
+		tester = mp.Process(target=testWriterFunc, args = (wq,))
 		tester.start()
 	consumers = []
 	for i in range(0, numworkers):
-		consumer = threading.Thread(target=consumerFunc, args = (rq, wq))
+		consumer = mp.Process(target=consumerFunc, args = (rq, wq))
 		consumers.append(consumer)
 		consumer.start()
 	producer.join()
