@@ -1,7 +1,7 @@
 import sys
 import multiprocessing as mp
 import argparse
-import queue
+import database
 import praw
 
 done = False
@@ -9,7 +9,7 @@ lock = mp.Lock()
 
 class Thread:
 	def __init__(self, thread):
-		self.subreddit = thread.subreddit
+		self.subreddit = str(thread.subreddit)
 		self.threadid = thread.id
 		self.title = thread.title
 		self.time = thread.created_utc
@@ -19,21 +19,17 @@ class Thread:
 		self.selftext = thread.selftext
 		self.selfpost = thread.is_self
 		self.user = thread.author.name
-			
-		
-		
-	def addComment(self, comment):
-		self.comments.append(comment)
 
 class Query:
-	def __init__(self, sub, start, end):
+	def __init__(self, topic, sentiment, sub, start, end):
+		self.topic = topic
+		self.sentiment = sentiment
 		# subreddit (string)
 		self.sub = sub
 		# start time (time)
 		self.start = start
 		# end time (time)
 		self.end = end
-
 
 def setDone(val):
 	global done
@@ -51,7 +47,7 @@ def getDone():
 def parseFile(file, delim):
 	with open(file) as f:
 		lines = f.readlines()
-	return [Query(l.split(delim)[0],l.split(delim)[1],l.split(delim)[2]) for l in lines]
+	return [Query(l.split(delim)[0],l.split(delim)[1],l.split(delim)[2],l.split(delim)[3],l.split(delim)[4]) for l in lines]
 
 def makeRequest(reddit, query):
 	srch = "timestamp:" + query.start + ".." + query.end
@@ -63,9 +59,6 @@ def producerFunc(numworkers, rq, queries):
 	print("no more queries")
 	for i in range(numworkers):
 		rq.put("STOP")
-
-
-
 
 def consumerFunc(rq, wq):
 	reddit = praw.Reddit(user_agent="Sentiment Analyzer 1.0 by /u/FacialHare")
@@ -98,7 +91,19 @@ def testWriterFunc(wq):
 						f.write("\n")
 			f.close()
 
+def dbWriterFunc(wq, session):
 	
+	print("set up DB writer")
+	while True:
+		if (wq.empty() == False):
+			thread = wq.get()
+			if (thread == "STOP"):
+				return
+			#print("grab from queue")
+			try: 
+				database.addThread(session, "test", 1, thread)
+			except:
+				print("db load error")
 
 def main(argv):
 	parser = argparse.ArgumentParser()
@@ -125,6 +130,11 @@ def main(argv):
 	if(args.test):
 		tester = mp.Process(target=testWriterFunc, args = (wq,))
 		tester.start()
+	else:
+		session = database.makeSession();
+		db = mp.Process(target=dbWriterFunc, args = (wq,session))
+		db.start()
+
 	consumers = []
 	for i in range(0, numworkers):
 		consumer = mp.Process(target=consumerFunc, args = (rq, wq))
@@ -138,6 +148,8 @@ def main(argv):
 	wq.put("STOP")
 	if(args.test):
 		tester.join()
+	else:
+		db.join()
 	print("Exiting main thread")
 if __name__ == "__main__":
 	main(sys.argv[1:])
