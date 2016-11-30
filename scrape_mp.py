@@ -4,6 +4,7 @@ import argparse
 import database
 import praw
 import re
+import time
 
 done = False
 lock = mp.Lock()
@@ -57,7 +58,7 @@ def parseFile(file, delim):
 
 def makeRequest(reddit, query):
 	srch = "timestamp:" + query.start + ".." + query.end
-	return reddit.search(srch, subreddit=query.sub, sort='top',syntax='cloudsearch')
+	return reddit.search(srch, subreddit=query.sub, sort='top',syntax='cloudsearch', limit=200)
 
 def producerFunc(numworkers, rq, queries):
 	for query in queries:
@@ -101,15 +102,16 @@ def dbWriterFunc(wq):
 	session = database.makeSession()
 	print("set up DB writer")
 	while True:
+		time.sleep(.001)
 		if (wq.empty() == False):
 			thread = wq.get()
 			if (thread == "STOP"):
 				return
 			#print("grab from queue")
-			try: 
-				database.addThread(session, thread.topic, thread.sentiment, thread)
-			except:
-				print("db load error")
+			#try: 
+			database.addThread(session, thread.topic, thread.sentiment, thread)
+		#	except:
+		#		print("db load error")
 
 def main(argv):
 	parser = argparse.ArgumentParser()
@@ -131,6 +133,8 @@ def main(argv):
 	rq = mp.Queue()
 	wq = mp.Queue()
 	queries = parseFile(file, delim)
+	if numworkers > queries:
+		numworkers = queries
 	producer = mp.Process(target=producerFunc, args = (numworkers, rq, queries))
 	producer.start()
 	if(args.test):

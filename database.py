@@ -43,10 +43,14 @@ def makeSession():
 	return session
 	
 def addThread(session, tpc, sntmnt, thrd):
+	if session.query(Threads).filter(Threads.threadid == thrd.threadid).count():
+		print("Thread already in db")
+		return
 	t = Threads(threadid = thrd.threadid, topic=tpc, sentiment = sntmnt, title = thrd.title, time = thrd.time, subreddit = thrd.subreddit, selfpost = thrd.selfpost, selftext = thrd.selftext, domain = thrd.domain, upvotes = thrd.upvotes, comments = thrd.comments, user = thrd.user)
 	session.add(t)
 	session.commit()
-	
+#	except:
+#		print("Thread already in db")
 def toAscii(text):
 	return re.sub(r'[^\x00-\x7F]+',' ', text)
 	
@@ -59,8 +63,11 @@ if __name__ == "__main__":
 		create()
 	if args.print:
 		session = makeSession()
+		count = 0
 		for thread in session.query(Threads):
-			print(thread.topic + ", " + str(thread.sentiment) + ": [" + thread.subreddit + "] [" + thread.title + "] [" + str(thread.time) + "]")
+			count += 1
+			print(thread.topic + ", " + str(thread.sentiment) + ": [" + thread.subreddit + "] [" + toAscii(thread.title) + "] [" + str(thread.time) + "]")
 			#for comment in thread.comments:
 			#	print(toAscii(comment.body) + "\n")
+		print("Numthreads: " + str(count))
 	exit()
