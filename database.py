@@ -35,6 +35,14 @@ def query(session, topic, sentiment):
 	for thread in session.query(Threads).filter(Threads.topic==topic).filter(Threads.sentiment == sentiment):
 		threads.append(thread)
 	return threads
+
+def time_query(session, topic, sentiment, start_time, end_time):
+	threads = []
+	for thread in session.query(Threads).\
+	filter(Threads.topic==topic).filter(Threads.sentiment == sentiment).\
+	filter(Threads.time >= start_time).filter(Threads.time < end_time):
+		threads.append(thread)
+	return threads
 	
 def makeSession():
 	engine = create_engine('sqlite:///reddit.db')
