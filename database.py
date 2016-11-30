@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
 import argparse
+import re
 Base = declarative_base()
 
 
@@ -46,6 +47,9 @@ def addThread(session, tpc, sntmnt, thrd):
 	session.add(t)
 	session.commit()
 	
+def toAscii(text):
+	return re.sub(r'[^\x00-\x7F]+',' ', text)
+	
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c", "--create", help="create database file (default: reddit.db)", action="store_true")
@@ -57,4 +61,6 @@ if __name__ == "__main__":
 		session = makeSession()
 		for thread in session.query(Threads):
 			print(thread.subreddit + " " + thread.title + " " + str(thread.time))
+			#for comment in thread.comments:
+			#	print(toAscii(comment.body) + "\n")
 	exit()
