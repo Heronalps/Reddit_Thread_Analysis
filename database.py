@@ -14,6 +14,7 @@ class Threads(Base):
 	threadid = Column(String(255), primary_key=True)
 	topic = Column(String(255))
 	sentiment = Column(Integer)
+	assigned_label = Column(Integer)
 	
 	title = Column(Text)
 	time = Column(BigInteger)
