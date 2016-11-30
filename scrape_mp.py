@@ -9,7 +9,7 @@ done = False
 lock = mp.Lock()
 
 class Thread:
-	def __init__(self, thread):
+	def __init__(self, thread, topic, sentiment):
 		self.subreddit = str(thread.subreddit)
 		self.threadid = thread.id
 		self.title = thread.title
@@ -20,6 +20,8 @@ class Thread:
 		self.selftext = thread.selftext
 		self.selfpost = thread.is_self
 		self.user = thread.author.name
+		self.topic = topic
+		self.sentiment = sentiment
 
 class Query:
 	def __init__(self, topic, sentiment, sub, start, end):
@@ -75,8 +77,8 @@ def consumerFunc(rq, wq):
 			#print ("found {0} threads".format(len(list(gen))))
 			if gen is not None:
 				for p in gen:
-					thread = Thread(p)
-					print("puting obj on queue")
+					thread = Thread(p, query.topic, query.sentiment)
+					print("putting obj on queue")
 					wq.put(thread)
 
 def testWriterFunc(wq):
@@ -105,7 +107,7 @@ def dbWriterFunc(wq):
 				return
 			#print("grab from queue")
 			try: 
-				database.addThread(session, "test", 1, thread)
+				database.addThread(session, thread.topic, thread.sentiment, thread)
 			except:
 				print("db load error")
 

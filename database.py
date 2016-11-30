@@ -60,7 +60,7 @@ if __name__ == "__main__":
 	if args.print:
 		session = makeSession()
 		for thread in session.query(Threads):
-			print(thread.subreddit + " " + thread.title + " " + str(thread.time))
+			print(thread.topic + ", " + str(thread.sentiment) + ": [" + thread.subreddit + "] [" + thread.title + "] [" + str(thread.time) + "]")
 			#for comment in thread.comments:
 			#	print(toAscii(comment.body) + "\n")
 	exit()
