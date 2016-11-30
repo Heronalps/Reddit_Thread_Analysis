@@ -133,8 +133,9 @@ def main(argv):
 	rq = mp.Queue()
 	wq = mp.Queue()
 	queries = parseFile(file, delim)
-	if numworkers > queries:
-		numworkers = queries
+	if numworkers > len(queries):
+		numworkers = len(queries)
+	print("Numworkers: " + str(numworkers))
 	producer = mp.Process(target=producerFunc, args = (numworkers, rq, queries))
 	producer.start()
 	if(args.test):
