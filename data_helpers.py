@@ -2,6 +2,7 @@ import numpy as np
 import re
 import itertools
 from collections import Counter
+import database
 
 
 def clean_str(string):
@@ -44,7 +45,7 @@ def clean_data_and_labels(positive_data_file, negative_data_file):
     y = np.concatenate([positive_labels, negative_labels], 0)
     return [x_text, y]
 
-def load_data_and_labels_DB(positive_data_file, negative_data_file):
+def load_data_and_labels_DB(session, topic, start_time, end_time):
     """
     Loads MR polarity data from files, splits the data into words and generates labels.
     Returns split sentences and labels.
@@ -52,14 +53,35 @@ def load_data_and_labels_DB(positive_data_file, negative_data_file):
     # Load data from files
     """TODO:
     """
+    positive_examples = []
+    negative_examples = []
+    neutral_examples = []
+    positive_threads = database.query(session, topic, 1, start_time, end_time)
+    for thread in positive_threads:
+        for comment in thread.comments:
+                if type(comment).__name__ == "Comment":
+                    positive_examples = positive_examples.append(comment.body)
+    negative_threads = database.query(session, topic, -1, start_time, end_time)
+    for thread in negative_threads:
+        for comment in thread.comments:
+                if type(comment).__name__ == "Comment":
+                    negative_examples = negative_examples.append(comment.body)
+    neutral_threads = database.query(session, "Neutral", 0, start_time, end_time)
+    for thread in negative_threads:
+        for comment in thread.comments:
+                if type(comment).__name__ == "Comment":
+                    neutral_examples = negative_examples.append(comment.body)
+
+
     # Split by words
-    x_text = positive_examples + negative_examples
+    x_text = positive_examples + negative_examples + neutral_examples
     x_text = [clean_str(sent) for sent in x_text]
     # Generate labels
-    positive_labels = [[0, 1] for _ in positive_examples]
-    negative_labels = [[1, 0] for _ in negative_examples]
-    y = np.concatenate([positive_labels, negative_labels], 0)
-    return [x_text, y, n]
+    positive_labels = [[0, 1, 0] for _ in positive_examples]
+    negative_labels = [[1, 0, 0] for _ in negative_examples]
+    neutral_labels = [[0, 0, 1] for _ in negative_examples]
+    y = np.concatenate([positive_labels, negative_labels, neutral_labels], 0)
+    return [x_text, y]
 
 
 def load_data_and_labels(positive_data_file, negative_data_file):
