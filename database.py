@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
-
+import argparse
 Base = declarative_base()
 
 
@@ -36,8 +36,8 @@ def query(session, topic, sentiment):
 	
 def makeSession():
 	engine = create_engine('sqlite:///reddit.db')
-	Base.metadata.bind = self.engine
-	DBSession = sessionmaker(bind = self.engine)
+	Base.metadata.bind = engine
+	DBSession = sessionmaker(bind = engine)
 	session = DBSession()
 	return session
 	
@@ -47,5 +47,14 @@ def addThread(session, tpc, sntmnt, thrd):
 	session.commit()
 	
 if __name__ == "__main__":
-	create()
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-c", "--create", help="create database file (default: reddit.db)", action="store_true")
+	parser.add_argument("-p", "--print", help="print contents of database", action="store_true")
+	args = parser.parse_args()
+	if args.create:
+		create()
+	if args.print:
+		session = makeSession()
+		for thread in session.query(Threads):
+			print(thread.subreddit + " " + thread.title + " " + str(thread.time))
 	exit()

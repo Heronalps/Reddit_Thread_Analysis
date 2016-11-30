@@ -3,6 +3,7 @@ import multiprocessing as mp
 import argparse
 import database
 import praw
+import re
 
 done = False
 lock = mp.Lock()
@@ -44,6 +45,9 @@ def getDone():
 	lock.release()
 	return d
 
+def toAscii(text):
+	return re.sub(r'[^\x00-\x7F]+',' ', text)
+	
 def parseFile(file, delim):
 	with open(file) as f:
 		lines = f.readlines()
@@ -87,12 +91,12 @@ def testWriterFunc(wq):
 			f = open(name, "a")
 			for comment in thread.comments:
 					if type(comment).__name__ == "Comment":
-						f.write(comment.body)
+						f.write(toAscii(comment.body))
 						f.write("\n")
 			f.close()
 
-def dbWriterFunc(wq, session):
-	
+def dbWriterFunc(wq):
+	session = database.makeSession()
 	print("set up DB writer")
 	while True:
 		if (wq.empty() == False):
@@ -131,8 +135,8 @@ def main(argv):
 		tester = mp.Process(target=testWriterFunc, args = (wq,))
 		tester.start()
 	else:
-		session = database.makeSession();
-		db = mp.Process(target=dbWriterFunc, args = (wq,session))
+		#session = database.makeSession();
+		db = mp.Process(target=dbWriterFunc, args = (wq,))
 		db.start()
 
 	consumers = []
