@@ -71,8 +71,8 @@ def eval_thread(trainedTopic, trained_start_time, trained_stop_time, x_raw, x_ar
 			for thread in x_test:
 				all_predictions = []
 				for x_test_batch in thread:
-					print (x_test_batch.T)
-					batch_predictions = sess.run(predictions, {input_x: x_test_batch.T, dropout_keep_prob: 1.0})
+					tb = np.asarray(x_test_batch).reshape(-1,len(x_test_batch))
+					batch_predictions = sess.run(predictions, {input_x: np.asarray(tb), dropout_keep_prob: 1.0})
 					all_predictions = np.concatenate([all_predictions, batch_predictions])
 				thread_predictions.append(all_predictions)
 
@@ -95,22 +95,29 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 			if type(comment).__name__ == "Comment":
 				inputvars.append(comment.body[0:100])
 		inputvars = [data_helpers.clean_str(sent) for sent in inputvars]
+		#print (type(inputvars))
+		#break
 		raw.append(inputvars)
 		runs.append(inputvars)
 		#print(inputvars)
 
 	thread_array = (eval_thread(trainedTopic, trained_start_time, trained_stop_time, raw, runs))
-	print (thread_array)
-	negative = guess_array.count(0)
-	positive = guess_array.count(1)
-	irrellevent = guess_array.count(2)
-	#print (negative, irrellevent, positive)
-	if (negative > positive and negative > irrellevent):
-		negativeCnt += 1
-	if (negative < positive and positive > irrellevent):
-		positiveCnt += 1
-	else:
-		irrelleventCnt += 1
+	print (len(thread_array))
+	for guess_array in thread_array:
+		if guess_array.isarray()
+		guess_array = guess_array.tolist() 
+		negative = guess_array.count(0)
+		positive = guess_array.count(1)
+		irrellevent = guess_array.count(2)
+		#print (negative, irrellevent, positive)
+		if (len(guess_array) < 5):
+			continue
+		if (negative > positive and negative > irrellevent):
+			negativeCnt += 1
+		if (negative < positive and positive > irrellevent):
+			positiveCnt += 1
+		else:
+			irrelleventCnt += 1
 	print(negativeCnt, positiveCnt, irrelleventCnt)
 
 
