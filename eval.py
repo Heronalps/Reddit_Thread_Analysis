@@ -116,8 +116,8 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 				positive += vote
 			else:
 				irrellevent += vote
-			sentiment = (positive-negative) /(positive+negative+irrellevent)
-		data_helpers.update_score(thread.threadid, sentiment)
+			sentiment = (positive-negative) /float(positive+negative+irrellevent)
+		database.update_score(session, thread.threadid, sentiment)
 
 
 
