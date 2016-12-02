@@ -46,7 +46,7 @@ print("")
 # Data Preparatopn
 # ==================================================
 # Load data
-def load_train_comment_set(start_time, stop_time, target, title = False, votes=False, sentiment=False):
+def load_train_set(start_time, stop_time, target, title = False, votes=False, sentiment=False):
 	print("Loading data...")
 	print("Loading data...{:d}, {:d}, {:s}".format(start_time, stop_time, target))
 	session = database.makeSession()
@@ -250,4 +250,4 @@ def train_title_sent_from_db(start_time, stop_time):
 	run(x_train, x_dev, y_train, y_dev, vocab_processor, "titleSent", start_time, stop_time)
 
 
-train_from_db(1479880024, 1480484824, "Trump")
+train_comments_from_db(1479880024, 1480484824, "Trump")

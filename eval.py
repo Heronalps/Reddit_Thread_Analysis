@@ -100,55 +100,6 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 	print(threadobjlist)
 	thread_array = (eval_thread(trainedTopic, trained_start_time, trained_stop_time, threadobjlist))
 
-	"""
-	runs = []
-	votes = []
-	raw = []
-	negativeCnt = 0
-	positiveCnt = 0
-	irrelleventCnt = 0
-	for thread in threadlist:
-		inputvars = []
-		threadvotes = []
-		for comment in thread.comments:
-			if type(comment).__name__ == "Comment":
-				inputvars.append(comment.body[0:100])
-				threadvotes.append(comment.ups)
-		inputvars = [data_helpers.clean_str(sent) for sent in inputvars]
-		votes.append(threadvotes)
-		raw.append(inputvars)
-		runs.append(inputvars)
-		#print(inputvars)
-
-	thread_array = (eval_thread(trainedTopic, trained_start_time, trained_stop_time, raw, runs))
-	print (len(thread_array))
-	
-	for guess_array, thread_vote in zip(thread_array, votes):
-		if (type(guess_array) is list):
-			continue
-		guess_array = guess_array.tolist() 
-		negative = 0
-		positive = 0
-		irrellevent = 0
-		for comment, vote in zip(guess_array,thread_vote):
-			if (comment == 0):
-				negative += 1#vote
-			if (comment == 1):
-				positive += 1#vote
-			else:
-				irrellevent += 1#vote
-		#print (negative, irrellevent, positive)
-		if (len(guess_array) < 2):
-			continue
-		if (negative > positive and negative > irrellevent):
-			negativeCnt += 1
-		if (negative < positive and positive > irrellevent):
-			positiveCnt += 1
-		else:
-			irrelleventCnt += 1
-
-	print(negativeCnt, positiveCnt, irrelleventCnt)
-	"""
 	print (len(threadobjlist))
 	print (len(thread_array))
 	for threadobj in thread_array:
