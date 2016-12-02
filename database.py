@@ -12,7 +12,7 @@ class Threads(Base):
 	__tablename__ = 'threads'
 	
 	threadid = Column(String(255), primary_key=True)
-	topic = Column(String(255))
+	topic = Column(String(255), primary_key=True)
 	sentiment = Column(Integer)
 	assigned_label = Column(Integer)
 	
@@ -44,7 +44,7 @@ def time_query(session, topic, sentiment, start_time, end_time):
 		threads.append(thread)
 	return threads
 
-def title_query(session, topic, sentiment, start_time, end_time):
+def title_query(session, start_time, end_time):
 	threads = []
 	for thread in session.query(Threads).\
 	filter(Threads.time >= start_time).filter(Threads.time < end_time):

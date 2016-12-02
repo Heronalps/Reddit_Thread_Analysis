@@ -26,8 +26,7 @@ class threadobject:
 		self.comments = [data_helpers.clean_str(sent) for sent in self.comments]
 		self.transformed = None
 		self.predictions = None
-	def add_predictions(self, predictions):
-		self.predictions = predictions
+
 		
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
@@ -80,12 +79,9 @@ def eval_thread(trainedTopic, trained_start_time, trained_stop_time, threadobjli
 			# Collect the predictions here
 			for thread in threadobjlist:
 				if (len(thread.transformed) > 0):
-					batches = data_helpers.batch_iter(list(thread.transformed), len(thread.transformed), 1, shuffle=False)
-					
-					for x_test_batch in batches:
-						#print (x_test_batch)
-						thread.add_predictions(sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0}))
-						#print (thread.predictions)
+					batch = np.array(thread.transformed)
+					#print (x_test_batch)
+					thread.predictions = (sess.run(predictions, {input_x: batch, dropout_keep_prob: 1.0}))
 				newlist.append(thread)
 			
 				
@@ -93,7 +89,7 @@ def eval_thread(trainedTopic, trained_start_time, trained_stop_time, threadobjli
 		return newlist
 
 
-def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_time, end_time):
+def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_time, end_time, weight_by_votes=False):
 	session = database.makeSession()
 	threadlist = database.subreddit_query(session, subreddit, start_time, end_time)
 	#thread = threadlist[0]
@@ -153,12 +149,24 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 
 	print(negativeCnt, positiveCnt, irrelleventCnt)
 	"""
+	print (len(threadobjlist))
+	print (len(thread_array))
 	for threadobj in thread_array:
-		#if (threadobj.comments != []):
-		print (threadobj.comments)
-			#guess_array = threadobj.predictions.tolist()
-			#score = 
-			#threadobj.thread.
+		if (threadobj.predictions != None):
+			guess_array = threadobj.predictions.tolist()
+			if weight_by_votes:
+				thread_vote = threadobjlist.votes
+			else:
+				threadvote = [1] * len(threadobjlist.votes)
+			for comment, vote in zip(guess_array,thread_vote):
+			if (comment == 0):
+				negative += vote
+			if (comment == 1):
+				positive += vote
+			else:
+				irrellevent += vote
+			sentiment = (positive-negative) /(positive+negative+irrellevent)
+		data_helpers.update_score(thread.threadid, sentiment)
 
 
 

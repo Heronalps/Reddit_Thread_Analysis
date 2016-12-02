@@ -25,27 +25,7 @@ def clean_str(string):
 	string = re.sub(r"\s{2,}", " ", string)
 	return string.strip().lower()
 
-def clean_data_and_labels(positive_data_file, negative_data_file):
-	"""
-	Loads MR polarity data from files, splits the data into words and generates labels.
-	Returns split sentences and labels.
-	"""
-	# Load data from files
-	positive_examples = list(open(positive_data_file, "r").readlines())
-	positive_examples = [s.strip() for s in positive_examples]
-	negative_examples = list(open(negative_data_file, "r").readlines())
-	negative_examples = [s.strip() for s in negative_examples]
-	# Split by words
-	x_text = positive_examples + negative_examples
-	x_text = [clean_str(sent) for sent in x_text]
-	
-	# Generate labels
-	positive_labels = [[0, 1] for _ in positive_examples]
-	negative_labels = [[1, 0] for _ in negative_examples]
-	y = np.concatenate([positive_labels, negative_labels], 0)
-	return [x_text, y]
-
-def load_titles_and_labels_DB(session, topic, start_time, end_time):
+def load_titles_and_votes_DB(session, start_time, end_time):
 	"""
 	Loads MR polarity data from files, splits the data into words and generates labels.
 	Returns split sentences and labels.
@@ -53,16 +33,33 @@ def load_titles_and_labels_DB(session, topic, start_time, end_time):
 	examples = []
 	labels = []
 
-	threads = database.title_query(session, topic, 1, start_time, end_time)
+	threads = database.title_query(session, start_time, end_time)
+	for thread in threads:
+		examples.append(thread.title)
+		labels.append(thread.upvotes)
+	
+
+	print ("number of titles")
+	print (len(examples))
+	# Split by words
+	x_text = [clean_str(sent) for sent in x_text]
+
+def load_titles_and_sent_DB(session, start_time, end_time):
+	"""
+	Loads MR polarity data from files, splits the data into words and generates labels.
+	Returns split sentences and labels.
+	"""
+	examples = []
+	labels = []
+
+	threads = database.title_query(session, start_time, end_time)
 	for thread in threads:
 		examples.append(thread.title)
 		labels.append(thread.sentiment)
 	
 
 	print ("number of titles")
-	print (len(positive_examples))
-	print (len(negative_examples))
-	print (len(neutral_examples))
+	print (len(examples))
 	# Split by words
 	x_text = [clean_str(sent) for sent in x_text]
 

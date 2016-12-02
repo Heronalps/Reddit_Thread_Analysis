@@ -46,11 +46,20 @@ print("")
 # Data Preparatopn
 # ==================================================
 # Load data
-def load_train_set(start_time, stop_time, topic):
+def load_train_comment_set(start_time, stop_time, target, title = False, votes=False, sentiment=False):
 	print("Loading data...")
-	print("Loading data...{:d}, {:d}, {:s}".format(start_time, stop_time, topic))
+	print("Loading data...{:d}, {:d}, {:s}".format(start_time, stop_time, target))
 	session = database.makeSession()
-	x_text, y = data_helpers.load_data_and_labels_DB(session, topic, start_time, stop_time)
+	if title:
+		if (votes and not sentiment):
+			x_text, y = load_titles_and_votes_DB(session, start_time, end_time)
+		if (sentiment and not vote):
+			load_titles_and_sent_DB(session, start_time, end_time)
+		else:
+			print("error, votes and sentiment should be mutualy exclusive options")
+			return False
+	else:
+		x_text, y = data_helpers.load_comments_and_labels_DB(session, target, start_time, stop_time)
    
 	# Build vocabulary
 	max_document_length = max([len(x.split(" ")) for x in x_text])
@@ -113,7 +122,7 @@ def dev_step(x_batch, y_batch, writer=None):
 	if writer:
 		writer.add_summary(summaries, step)
 
-def run(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_time, stop_time):
+def run(x_train, x_dev, y_train, y_dev, vocab_processor, target, start_time, stop_time):
 	with tf.Graph().as_default():
 		session_conf = tf.ConfigProto(
 		  allow_soft_placement=FLAGS.allow_soft_placement,
@@ -147,7 +156,7 @@ def run(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_time, stop
 
 			# Output directory for models and summaries
 			timestamp = str(int(time.time()))
-			out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", topic + str(start_time)+ "-" + str(stop_time)))
+			out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", target + str(start_time)+ "-" + str(stop_time)))
 			print("Writing to {}\n".format(out_dir))
 
 			# Summaries for loss and accuracy
@@ -228,9 +237,17 @@ def run(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_time, stop
 					path = saver.save(sess, checkpoint_prefix, global_step=current_step)
 					print("Saved model checkpoint to {}\n".format(path))
 
-def train_from_db(start_time, stop_time, topic):
-	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, topic)
+def train_comments_from_db(start_time, stop_time, topic):
+	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, topic, )
 	run(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_time, stop_time)
 
+def train_title_votes_from_db(start_time, stop_time):
+	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, target, title = True, votes=True)
+	run(x_train, x_dev, y_train, y_dev, vocab_processor, "titleVotes", start_time, stop_time)
 
-train_from_db(1477977013, 1480396213, "Trump")
+def train_title_sent_from_db(start_time, stop_time):
+	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, target, title = True, sentiment=True)
+	run(x_train, x_dev, y_train, y_dev, vocab_processor, "titleSent", start_time, stop_time)
+
+
+train_from_db(1479880024, 1480484824, "Trump")
