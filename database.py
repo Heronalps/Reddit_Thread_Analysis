@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, ForeignKey, BigInteger, Integer, String, PickleType, Boolean, Text
+from sqlalchemy import Table, Column, ForeignKey, BigInteger, Integer, Float, String, PickleType, Boolean, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
@@ -12,9 +12,11 @@ class Threads(Base):
 	__tablename__ = 'threads'
 	
 	threadid = Column(String(255), primary_key=True)
-	topic = Column(String(255), primary_key=True)
-	sentiment = Column(Integer)
-	comments_sentiment = Column(Integer)
+#	topic = Column(String(255), primary_key=True)
+#	sentiment = Column(Integer)
+#	comments_sentiment = Column(Integer)
+	# One-to-many relationship
+	sentiments = relationship("Sentiment", back_populates="thread")
 	
 	title = Column(Text)
 	time = Column(BigInteger)
@@ -26,20 +28,51 @@ class Threads(Base):
 	comments = Column(PickleType)
 	user = Column(String(255))
 	
+class Sentiment(Base):
+	__tablename__ = 'sentiments'
+	topic = Column(String(255), primary_key=True)
+	threadid = Column(String(255), ForeignKey('Threads.threadid'))
+	# Many-to-one relationship
+	thread = relationship("Threads", back_populates="sentiments")
+	
+	# Label for thread sentiment:
+	# 1 if from biased pro-topic subreddit
+	# 0 if from "neutral" subreddit
+	# -1 if from biased anti-topic subreddit
+	sentiment = Column(Integer)
+	# Predicted overall sentiment
+	predicted_sentiment = Column(Float)
+	# Predicted overall popularity
+	predicted_popularity = Column(Float)
+
+	# Sentiment label given by comments (provided by CNN)
+	comments_sentiment = Column(Float)
+	# Per-attributed predicted sentiments
+	title_sentiment = Column(Float)
+	domain_sentiment = Column(Float)
+	user_sentiment = Column(Float)
+	time_sentiment = Column(Float)
+	# Per-attribute predicted popularity
+	title_popularity = Column(Float)
+	domain_popularity = Column(Float)
+	user_popularity = Column(Float)
+	time_popularity = Column(Float)
+	
+	
 def create():
 	engine = create_engine('sqlite:///reddit.db')
 	Base.metadata.create_all(engine)
 	
 def query(session, topic, sentiment):
 	threads = []
-	for thread in session.query(Threads).filter(Threads.topic==topic).filter(Threads.sentiment == sentiment):
+	for thread in session.query(Threads).filter(Threads.sentiments.topic==topic).filter(Threads.sentiments.sentiment == sentiment):
 		threads.append(thread)
 	return threads
 
 def time_query(session, topic, sentiment, start_time, end_time):
 	threads = []
 	for thread in session.query(Threads).\
-	filter(Threads.topic==topic).filter(Threads.sentiment == sentiment).\
+	filter(Threads.sentiments.topic==topic).filter(Threads.sentiments.sentiment == sentiment).\
 	filter(Threads.time >= start_time).filter(Threads.time < end_time):
 		threads.append(thread)
 	return threads
@@ -67,10 +100,21 @@ def makeSession():
 	return session
 	
 def addThread(session, tpc, sntmnt, thrd):
-	if session.query(Threads).filter(Threads.threadid == thrd.threadid).count():
-		print("Thread already in db")
-		return
-	t = Threads(threadid = thrd.threadid, topic=tpc, sentiment = sntmnt, title = thrd.title, time = thrd.time, subreddit = thrd.subreddit, selfpost = thrd.selfpost, selftext = thrd.selftext, domain = thrd.domain, upvotes = thrd.upvotes, comments = thrd.comments, user = thrd.user)
+	t = session.query(Threads).filter(Threads.threadid == thrd.threadid).one_or_none()
+	if t is not none:
+		print("Thread [" + thrd.title + "] already in db")
+		s = t.sentiments
+		if tpc in [x.topic for x in s]:
+			print("Topic [" + tpc + "] for thread [" + thrd.title + "] already in db")
+			return
+		else:
+			newsent = Sentiment(topic=tpc, sentiment = sntmnt)
+			t.sentiments.append(newsent)
+			session.commit()
+	
+	t = Threads(threadid = thrd.threadid, title = thrd.title, time = thrd.time, subreddit = thrd.subreddit, selfpost = thrd.selfpost, selftext = thrd.selftext, domain = thrd.domain, upvotes = thrd.upvotes, comments = thrd.comments, user = thrd.user)
+	s = Sentiment(topic=tpc, sentiment = sntmnt)
+	t.sentiments.append(s)
 	session.add(t)
 	session.commit()
 #	except:
