@@ -45,12 +45,37 @@ def clean_data_and_labels(positive_data_file, negative_data_file):
 	y = np.concatenate([positive_labels, negative_labels], 0)
 	return [x_text, y]
 
-def load_data_and_labels_DB(session, topic, start_time, end_time):
+def load_titles_and_labels_DB(session, topic, start_time, end_time):
 	"""
 	Loads MR polarity data from files, splits the data into words and generates labels.
 	Returns split sentences and labels.
 	"""
+	examples = []
+	labels = []
 
+	threads = database.title_query(session, topic, 1, start_time, end_time)
+	for thread in threads:
+		examples.append(thread.title)
+		labels.append(thread.sentiment)
+	
+
+	print ("number of titles")
+	print (len(positive_examples))
+	print (len(negative_examples))
+	print (len(neutral_examples))
+	# Split by words
+	x_text = [clean_str(sent) for sent in x_text]
+
+	# Generate labels
+
+	#print(y)
+	return [x_text, y]
+
+def load_comments_and_labels_DB(session, topic, start_time, end_time):
+	"""
+	Loads MR polarity data from files, splits the data into words and generates labels.
+	Returns split sentences and labels.
+	"""
 	positive_examples = []
 	negative_examples = []
 	neutral_examples = []

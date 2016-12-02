@@ -14,7 +14,21 @@ import database
 # Parameters
 # ==================================================
 
-
+class threadobject:
+	def __init__(self, thread):
+		self.thread = thread
+		self.comments = []
+		self.votes = []
+		for comment in thread.comments:
+			if type(comment).__name__ == "Comment":
+				self.comments.append(comment.body[0:100])
+				self.votes.append(comment.ups)
+		self.comments = [data_helpers.clean_str(sent) for sent in self.comments]
+		self.transformed = None
+		self.predictions = None
+	def add_predictions(self, predictions):
+		self.predictions = predictions
+		
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
@@ -24,7 +38,7 @@ tf.flags.DEFINE_boolean("eval_train", False, "Evaluate on all training data")
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
-def eval_thread(trainedTopic, trained_start_time, trained_stop_time, x_raw, x_array):
+def eval_thread(trainedTopic, trained_start_time, trained_stop_time, threadobjlist):
 	FLAGS = tf.flags.FLAGS
 	FLAGS._parse_flags()
 	print("\nParameters:")
@@ -35,10 +49,9 @@ def eval_thread(trainedTopic, trained_start_time, trained_stop_time, x_raw, x_ar
 	# Map data into vocabulary
 	vocab_path = os.path.join("runs", trainedTopic + str(trained_start_time)+ "-" + str(trained_stop_time), "vocab")
 	vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
-	x_test = []
-	for thread in x_array:
-		x_test.append(np.array(list(vocab_processor.transform(thread))))
-	#print(x_test)
+	for thread in threadobjlist:
+		thread.transformed = np.array(list(vocab_processor.transform(thread.comments)))
+	
 
 	print("\nEvaluating...\n")
 
@@ -63,20 +76,21 @@ def eval_thread(trainedTopic, trained_start_time, trained_stop_time, x_raw, x_ar
 
 			# Tensors we want to evaluate
 			predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-
-			# Generate batches for one epoch
-			#batches = data_helpers.batch_iter(list(x_test), FLAGS.batch_size, 1, shuffle=False)
-			thread_predictions = []
+			newlist = []
 			# Collect the predictions here
-			for thread in x_test:
-				all_predictions = []
-				for x_test_batch in thread:
-					tb = np.asarray(x_test_batch).reshape(-1,len(x_test_batch))
-					batch_predictions = sess.run(predictions, {input_x: np.asarray(tb), dropout_keep_prob: 1.0})
-					all_predictions = np.concatenate([all_predictions, batch_predictions])
-				thread_predictions.append(all_predictions)
+			for thread in threadobjlist:
+				if (len(thread.transformed) > 0):
+					batches = data_helpers.batch_iter(list(thread.transformed), len(thread.transformed), 1, shuffle=False)
+					
+					for x_test_batch in batches:
+						#print (x_test_batch)
+						thread.add_predictions(sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0}))
+						#print (thread.predictions)
+				newlist.append(thread)
+			
+				
 
-	return thread_predictions
+		return newlist
 
 
 def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_time, end_time):
@@ -84,6 +98,13 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 	threadlist = database.subreddit_query(session, subreddit, start_time, end_time)
 	#thread = threadlist[0]
 	#print(thread.title)
+	threadobjlist = []
+	for thread in threadlist:
+		threadobjlist.append(threadobject(thread))
+	print(threadobjlist)
+	thread_array = (eval_thread(trainedTopic, trained_start_time, trained_stop_time, threadobjlist))
+
+	"""
 	runs = []
 	votes = []
 	raw = []
@@ -105,6 +126,7 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 
 	thread_array = (eval_thread(trainedTopic, trained_start_time, trained_stop_time, raw, runs))
 	print (len(thread_array))
+	
 	for guess_array, thread_vote in zip(thread_array, votes):
 		if (type(guess_array) is list):
 			continue
@@ -128,12 +150,20 @@ def test(trainedTopic, trained_start_time, trained_stop_time, subreddit, start_t
 			positiveCnt += 1
 		else:
 			irrelleventCnt += 1
+
 	print(negativeCnt, positiveCnt, irrelleventCnt)
+	"""
+	for threadobj in thread_array:
+		#if (threadobj.comments != []):
+		print (threadobj.comments)
+			#guess_array = threadobj.predictions.tolist()
+			#score = 
+			#threadobj.thread.
 
 
 
 
 
-test("Trump", 1477977013, 1480396213, "funny", 1476921600, 1477008000)
+test("Trump", 1477977013, 1480396213, "funny", 1479081600, 1479091600)
 
 	
