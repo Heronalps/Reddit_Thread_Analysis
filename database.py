@@ -31,7 +31,7 @@ class Threads(Base):
 class Sentiment(Base):
 	__tablename__ = 'sentiments'
 	topic = Column(String(255), primary_key=True)
-	threadid = Column(String(255), ForeignKey('Threads.threadid'))
+	threadid = Column(String(255), ForeignKey('threads.threadid'), primary_key=True)
 	# Many-to-one relationship
 	thread = relationship("Threads", back_populates="sentiments")
 	
@@ -59,8 +59,8 @@ class Sentiment(Base):
 	time_popularity = Column(Float)
 	
 	
-def create():
-	engine = create_engine('sqlite:///reddit.db')
+def create(name):
+	engine = create_engine('sqlite:///' + name)
 	Base.metadata.create_all(engine)
 	
 def query(session, topic, sentiment):
@@ -92,6 +92,13 @@ def subreddit_query(session, subreddit, start_time, end_time):
 		threads.append(thread)
 	return threads
 	
+def testSession():
+	engine = create_engine('sqlite:///test.db')
+	Base.metadata.bind = engine
+	DBSession = sessionmaker(bind = engine)
+	session = DBSession()
+	return session
+	
 def makeSession():
 	engine = create_engine('sqlite:///reddit.db')
 	Base.metadata.bind = engine
@@ -101,17 +108,19 @@ def makeSession():
 	
 def addThread(session, tpc, sntmnt, thrd):
 	t = session.query(Threads).filter(Threads.threadid == thrd.threadid).one_or_none()
-	if t is not none:
-		print("Thread [" + thrd.title + "] already in db")
+	#print(str(t))
+	if t is not None:
+		print("Thread [" + toAscii(thrd.title) + "] already in db")
 		s = t.sentiments
 		if tpc in [x.topic for x in s]:
-			print("Topic [" + tpc + "] for thread [" + thrd.title + "] already in db")
+			print("Topic [" + toAscii(tpc) + "] for thread [" + toAscii(thrd.title) + "] already in db")
 			return
 		else:
 			newsent = Sentiment(topic=tpc, sentiment = sntmnt)
 			t.sentiments.append(newsent)
 			session.commit()
-	
+			return
+	print("Thread [" + toAscii(thrd.title) + "] not in db, adding for topic [" + toAscii(tpc) + "]")
 	t = Threads(threadid = thrd.threadid, title = thrd.title, time = thrd.time, subreddit = thrd.subreddit, selfpost = thrd.selfpost, selftext = thrd.selftext, domain = thrd.domain, upvotes = thrd.upvotes, comments = thrd.comments, user = thrd.user)
 	s = Sentiment(topic=tpc, sentiment = sntmnt)
 	t.sentiments.append(s)
@@ -126,15 +135,23 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c", "--create", help="create database file (default: reddit.db)", action="store_true")
 	parser.add_argument("-p", "--print", help="print contents of database", action="store_true")
+	parser.add_argument("-t", "--test", help="test database functionality", action="store_true")
 	args = parser.parse_args()
+	if args.test:
+		print("Tests not yet implemented")
+		exit()
+		create("test.db")
+		session = testSession()
 	if args.create:
-		create()
+		create("reddit.db")
 	if args.print:
 		session = makeSession()
 		count = 0
 		for thread in session.query(Threads):
 			count += 1
-			print(thread.topic + ", " + str(thread.sentiment) + ": [" + thread.subreddit + "] [" + toAscii(thread.title) + "] [" + str(thread.time) + "]")
+			print("Thread " + str(count))
+			for s in thread.sentiments:
+				print(s.topic + ", " + str(s.sentiment) + ": [" + thread.subreddit + "] [" + toAscii(thread.title) + "] [" + str(thread.time) + "]")
 			#for comment in thread.comments:
 			#	print(toAscii(comment.body) + "\n")
 		print("Numthreads: " + str(count))
