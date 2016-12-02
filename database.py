@@ -65,16 +65,17 @@ def create(name):
 	
 def query(session, topic, sentiment):
 	threads = []
-	for thread in session.query(Threads).filter(Threads.sentiments.topic==topic).filter(Threads.sentiments.sentiment == sentiment):
+	for thread in session.query(Threads, Sentiment).filter(Threads.threadid == Sentiment.threadid).filter(Sentiment.topic==topic).filter(Sentiment.sentiment == sentiment):
 		threads.append(thread)
 	return threads
 
 def time_query(session, topic, sentiment, start_time, end_time):
 	threads = []
-	for thread in session.query(Threads).\
-	filter(Threads.sentiments.topic==topic).filter(Threads.sentiments.sentiment == sentiment).\
+	for thread, sent in session.query(Threads, Sentiment).\
+	filter(Threads.threadid == Sentiment.threadid).\
+	filter(Sentiment.topic==topic).filter(Sentiment.sentiment == sentiment).\
 	filter(Threads.time >= start_time).filter(Threads.time < end_time):
-		threads.append(thread)
+		threads.append((thread, sent))
 	return threads
 
 def title_query(session, start_time, end_time):
@@ -138,10 +139,18 @@ if __name__ == "__main__":
 	parser.add_argument("-t", "--test", help="test database functionality", action="store_true")
 	args = parser.parse_args()
 	if args.test:
-		print("Tests not yet implemented")
-		exit()
-		create("test.db")
-		session = testSession()
+		#print("Tests not yet implemented")
+		#exit()
+		#create("test.db")
+		session = makeSession()
+		tq = time_query(session, "Trump", 1, 1478977013, 1480396213)
+		count = 0
+		for thread in tq:
+			count += 1
+			print("Thread " + str(count))
+			print(thread[1].topic + ", " + str(thread[1].sentiment) + ": [" + thread[0].subreddit + "] [" + toAscii(thread[0].title) + "] [" + str(thread[0].time) + "]")
+			#for s in thread.sentiments:
+			#	print(s.topic + ", " + str(s.sentiment) + ": [" + thread.subreddit + "] [" + toAscii(thread.title) + "] [" + str(thread.time) + "]")
 	if args.create:
 		create("reddit.db")
 	if args.print:
