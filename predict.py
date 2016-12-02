@@ -1,3 +1,4 @@
+from sqlalchemy.sql import func
 class prediction:
 	def __init__(self, name, ups, sent, count):
 		self.name = name
@@ -14,7 +15,7 @@ class prediction:
 
 def predictUsers(session, percent):
 	preds = []
-	for name, ups, sent, count in session.query(Threads.username, func.avg(Threads.upvotes), func.avg(threads.comments_sentiment), func.count(Threads.username)).group_by(Threads.username).all().order_by(func.avg(Threads.upvotes).desc()):
+	for name, ups, sent, count in session.query(Threads.username, func.sum(Threads.upvotes), func.sum(threads.comments_sentiment), func.count(Threads.username)).group_by(Threads.username).all().order_by(func.avg(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
 	tot_users = percent * float(len(preds))
 	results = []
@@ -31,6 +32,24 @@ def predictUsers(session, percent):
 	unknown = prediction("Unknown", uk_ups, uk_sent, uk_count)
 	results.append(unkown)
 	
+def predictDomains(session, percent):
+	preds = []
+	for name, ups, sent, count in session.query(Threads.domain, func.sum(Threads.upvotes), func.sum(threads.comments_sentiment), func.count(Threads.domain)).group_by(Threads.domain).all().order_by(func.avg(Threads.upvotes).desc()):
+		preds.append(prediction(name, ups, sent, count))
+	tot_domains = percent * float(len(preds))
+	results = []
+	uk_ups = 0
+	uk_sent = 0
+	uk_count = 0
+	for i in range(len(preds)):
+		if i < tot_domains:
+			results.append(preds[i])
+		else:
+			uk_ups += preds[i].tot_ups
+			uk_sent += preds[i].tot_sent
+			uk_count += preds[i].count
+	unknown = prediction("Unknown", uk_ups, uk_sent, uk_count)
+	results.append(unkown)
 
 def predictUser(session, username):
 	total_ups = 0
