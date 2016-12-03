@@ -27,6 +27,13 @@ class Threads(Base):
 	upvotes = Column(Integer)
 	comments = Column(PickleType)
 	user = Column(String(255))
+
+	# Per-attribute predicted popularity
+	title_popularity = Column(Float)
+	domain_popularity = Column(Float)
+	user_popularity = Column(Float)
+	time_of_day_popularity = Column(Float)
+	time_of_week_popularity = Column(Float)
 	
 class Sentiment(Base):
 	__tablename__ = 'sentiments'
@@ -53,12 +60,7 @@ class Sentiment(Base):
 	user_sentiment = Column(Float)
 	time_of_day_sentiment = Column(Float)
 	time_of_week_sentiment = Column(Float)
-	# Per-attribute predicted popularity
-	title_popularity = Column(Float)
-	domain_popularity = Column(Float)
-	user_popularity = Column(Float)
-	time_of_day_popularity = Column(Float)
-	time_of_week_popularity = Column(Float)
+
 	
 	
 def create(name):
