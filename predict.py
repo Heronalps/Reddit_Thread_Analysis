@@ -62,7 +62,13 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	# commit results to db
 	session.commit()
 	
-	
+# session: db session 
+# train_start: start time for training (unix time)
+# train_end: end time for training set (unix time)
+# test_start: start time for testing set (unix time)
+# test_end: end time for testing set (unix time)
+# subreddit: subreddit to run on
+# percent: percentage of top domains to track (float (0.0-1.0))	
 def predictDomains(session, train_start, train_end, test_start, test_end, subreddit, percent):
 	preds = []
 	# query training data
@@ -94,7 +100,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	update({Threads.domain_popularity = unkmown.avg_ups}).\
 	update({Sentiment.domain_sentiment = unknown.avg_sent})
 	
-	# set all of the top users to their value
+	# set all of the top domains to their value
 	for u in results:
 		session.query().\
 		filter(Threads.domain == u.name).\
