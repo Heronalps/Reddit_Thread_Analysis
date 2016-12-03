@@ -48,7 +48,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	session.query().\
 	filter(Threads.subreddit = subreddit).filter(Sentiment.topic = topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
-	update({Threads.user_popularity = unkmown.avg_ups}).\
+	update({Threads.user_popularity = unknown.avg_ups}).\
 	update({Sentiment.user_sentiment = unknown.avg_sent})
 	
 	# set all of the top users to their value
@@ -97,7 +97,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	session.query().\
 	filter(Threads.subreddit = subreddit).filter(Sentiment.topic = topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
-	update({Threads.domain_popularity = unkmown.avg_ups}).\
+	update({Threads.domain_popularity = unknown.avg_ups}).\
 	update({Sentiment.domain_sentiment = unknown.avg_sent})
 	
 	# set all of the top domains to their value
