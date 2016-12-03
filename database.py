@@ -51,12 +51,14 @@ class Sentiment(Base):
 	title_sentiment = Column(Float)
 	domain_sentiment = Column(Float)
 	user_sentiment = Column(Float)
-	time_sentiment = Column(Float)
+	time_of_day_sentiment = Column(Float)
+	time_of_week_sentiment = Column(Float)
 	# Per-attribute predicted popularity
 	title_popularity = Column(Float)
 	domain_popularity = Column(Float)
 	user_popularity = Column(Float)
-	time_popularity = Column(Float)
+	time_of_day_popularity = Column(Float)
+	time_of_week_popularity = Column(Float)
 	
 	
 def create(name):
@@ -78,17 +80,25 @@ def time_query(session, topic, sentiment, start_time, end_time):
 		threads.append((thread, sent))
 	return threads
 
-def title_query(session, start_time, end_time):
+def title_vote_query(session, start_time, end_time):
 	threads = []
 	for thread in session.query(Threads).\
 	filter(Threads.time >= start_time).filter(Threads.time < end_time):
 		threads.append(thread)
 	return threads
 
-def subreddit_query(session, subreddit, start_time, end_time):
+def title_vote_query(session, start_time, end_time):
 	threads = []
 	for thread in session.query(Threads).\
-	filter(Threads.subreddit == subreddit).\
+	filter(Threads.time >= start_time).filter(Threads.time < end_time):
+		threads.append(thread)
+	return threads
+
+def subreddit_query(session, subreddit, topic, start_time, end_time):
+	threads = []
+	for thread in session.query(Threads, Sentiment).\
+	filter(Threads.threadid == Sentiment.threadid).\
+	filter(Sentiment.topic==topic).filter(Threads.subreddit==subreddit)\
 	filter(Threads.time >= start_time).filter(Threads.time < end_time):
 		threads.append(thread)
 	return threads
