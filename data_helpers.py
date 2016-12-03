@@ -25,7 +25,7 @@ def clean_str(string):
 	string = re.sub(r"\s{2,}", " ", string)
 	return string.strip().lower()
 
-def load_titles_and_votes_DB(session, start_time, end_time):
+def load_titles_and_votes_DB(session, subreddit, start_time, end_time):
 	"""
 	Loads MR polarity data from files, splits the data into words and generates labels.
 	Returns split sentences and labels.
@@ -33,7 +33,7 @@ def load_titles_and_votes_DB(session, start_time, end_time):
 	examples = []
 	labels = []
 
-	threads = database.title_query(session, start_time, end_time)
+	threads = database.subreddit_query(session, subreddit, start_time, end_time)
 	for thread in threads:
 		examples.append(thread.title)
 		labels.append(thread.upvotes)
@@ -44,7 +44,7 @@ def load_titles_and_votes_DB(session, start_time, end_time):
 	# Split by words
 	x_text = [clean_str(sent) for sent in x_text]
 
-def load_titles_and_sent_DB(session, start_time, end_time):
+def load_titles_and_sent_DB(session, topic, sentiment, start_time, end_time):
 	"""
 	Loads MR polarity data from files, splits the data into words and generates labels.
 	Returns split sentences and labels.
@@ -52,10 +52,10 @@ def load_titles_and_sent_DB(session, start_time, end_time):
 	examples = []
 	labels = []
 
-	threads = database.title_query(session, start_time, end_time)
-	for thread in threads:
+	threads, sentiments = database.time_query(session, topic, 0, start_time, end_time)
+	for thread, sent in threads, sentiments:
 		examples.append(thread.title)
-		labels.append(thread.sentiment)
+		labels.append(sent.comments_sentiment)
 	
 
 	print ("number of titles")

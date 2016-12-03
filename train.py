@@ -46,10 +46,9 @@ print("")
 # Data Preparatopn
 # ==================================================
 # Load data
-def load_train_set(start_time, stop_time, target, title = False, votes=False, sentiment=False):
+def load_train_set(session, start_time, stop_time, target, title = False, subreddit=False, sentiment=False):
 	print("Loading data...")
 	print("Loading data...{:d}, {:d}, {:s}".format(start_time, stop_time, target))
-	session = database.makeSession()
 	if title:
 		if (votes and not sentiment):
 			x_text, y = load_titles_and_votes_DB(session, start_time, end_time)
@@ -57,7 +56,7 @@ def load_train_set(start_time, stop_time, target, title = False, votes=False, se
 			load_titles_and_sent_DB(session, start_time, end_time)
 		else:
 			print("error, votes and sentiment should be mutualy exclusive options")
-			return False
+			return Falsepoop
 	else:
 		x_text, y = data_helpers.load_comments_and_labels_DB(session, target, start_time, stop_time)
    
@@ -238,16 +237,16 @@ def run(x_train, x_dev, y_train, y_dev, vocab_processor, target, start_time, sto
 					print("Saved model checkpoint to {}\n".format(path))
 
 def train_comments_from_db(start_time, stop_time, topic):
-	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, topic, )
+	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(session, start_time, stop_time, topic)
 	run(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_time, stop_time)
 
 def train_title_votes_from_db(start_time, stop_time):
-	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, target, title = True, votes=True)
-	run(x_train, x_dev, y_train, y_dev, vocab_processor, "titleVotes", start_time, stop_time)
+	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(session, start_time, stop_time, target, title = True, votes=True)
+	run(x_train, x_dev, y_train, y_dev, vocab_processor, target + "votes", start_time, stop_time)
 
 def train_title_sent_from_db(start_time, stop_time):
-	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(start_time, stop_time, target, title = True, sentiment=True)
-	run(x_train, x_dev, y_train, y_dev, vocab_processor, "titleSent", start_time, stop_time)
+	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(session, start_time, stop_time, target, title = True, sentiment=True)
+	run(x_train, x_dev, y_train, y_dev, vocab_processor, target+ "sentiment", start_time, stop_time)
 
 
 train_comments_from_db(1479880024, 1480484824, "Trump")
