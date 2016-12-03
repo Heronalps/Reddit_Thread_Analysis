@@ -13,7 +13,7 @@ class prediction:
 			self.avg_sent = 0
 			self.count = 0
 
-def predictUsers(session, percent):
+def predictUsers(session, train_start, train_end, test_start, test_end, subreddit, percent):
 	preds = []
 	for name, ups, sent, count in session.query(Threads.username, func.sum(Threads.upvotes), func.sum(threads.comments_sentiment), func.count(Threads.username)).group_by(Threads.username).all().order_by(func.avg(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
@@ -32,7 +32,7 @@ def predictUsers(session, percent):
 	unknown = prediction("Unknown", uk_ups, uk_sent, uk_count)
 	results.append(unkown)
 	
-def predictDomains(session, percent):
+def predictDomains(session, train_start, train_end, test_start, test_end, subreddit, percent):
 	preds = []
 	for name, ups, sent, count in session.query(Threads.domain, func.sum(Threads.upvotes), func.sum(threads.comments_sentiment), func.count(Threads.domain)).group_by(Threads.domain).all().order_by(func.avg(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
