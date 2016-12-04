@@ -69,7 +69,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 # test_end: end time for testing set (unix time)
 # subreddit: subreddit to run on
 # percent: percentage of top domains to track (float (0.0-1.0))	
-def predictDomains(session, train_start, train_end, test_start, test_end, subreddit, percent):
+def predictDomains(session, train_start, train_end, test_start, test_end, subreddit, topic, percent):
 	preds = []
 	# query training data
 	for name, ups, sent, count in session.query(Threads.domain, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.domain)).\
