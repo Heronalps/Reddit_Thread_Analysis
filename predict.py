@@ -134,3 +134,5 @@ def predictDomain(session, domain):
 	avg_upvotes = float(total_ups) / float(count)
 	avg_sent = float(total_sent) / float(count)
 	return (avg_upvotes, avg_sent)
+
+

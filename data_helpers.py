@@ -4,6 +4,92 @@ import itertools
 from collections import Counter
 import database
 
+class predictordata:
+	def __init__(session, topic, subreddit, start_time, end_time):  
+		print("Loading data...")
+		print("Loading data...{:d}, {:d}, {:s}".format(start_time, end_time, topic))
+
+
+		threads, sentiments = database.subreddit_and_topic_query(session, topic, subreddit, start_time, end_time)
+		self.threadIDs = []
+		self.dayofweek = []
+		self.timeofday = []
+		self.userpop = []
+		self.usersent = []
+		self.domainpop = []
+		self.domainsent = []
+		self.titles = []
+		self.labels = []
+		self.vocab_processor = None
+		for thread, sentiment in threads, sentiments:
+			self.threadIDs.append(thread.threadid)
+			timeofday = ((thread.time-start_time)%86400) - (430200)
+			self.timeofday.append(timeofday)
+			dayofweek = (((thread.time-start_time)%604800)/86400) - 3
+			self.dayofweek.append(dayofweek)
+
+			self.userpop.append(thread.user_popularity)
+			self.usersent.append(sentiment.user_sentiment)
+			self.domainpop.append(thread.domain_popularity)
+			self.domainsent.append(sentiment.domain_sentiment)
+
+			self.titles.append(thread.title)
+			self.labels.append([thread.upvotes, sentiment.comments_sentiment])
+			
+
+		print ("number of titles")
+		print (len(examples))
+		# Split by words
+		self.threadIDs = np.asarray(self.threadID).reshape((len(self.threadID),1))
+		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
+		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
+		self.timeofday = np.asarray(self.timeofday).reshape((len(self.timeofday),1))
+		self.userpop = np.asarray(self.userpop).reshape((len(self.userpop),1))
+		self.usersent = np.asarray(self.usersent).reshape((len(self.usersent),1))
+		self.domainpop = np.asarray(self.domainpop).reshape((len(self.domainpop),1))
+		self.domainsent = np.asarray(self.domainsent).reshape((len(self.domainsent),1))
+		self.titles = [clean_str(sent) for sent in self.titles]
+		self.labels = np.concatenate(self.labels, 0)
+
+		
+
+	def process(vocab = None):
+
+		max_document_length = max([len(x.split(" ")) for x in self.titles])
+
+		if (vocab == None):
+			self.vocab_processor = learn.preprocessing.VocabularyProcessor(59)
+			self.titles = np.array(list(vocab_processor.fit_transform(self.titles)))
+		else:
+			self.vocab_processor = vocab
+			self.titles = np.array(list(vocab_processor.fit_transform(self.titles)))
+
+		np.random.seed(10)
+		shuffle_indices = np.random.permutation(np.arange(len(self.labels)))
+
+		self.threadIDs = self.threadIDs[shuffle_indices]
+		self.dayofweek = self.dayofweek[shuffle_indices]
+		self.timeofday = self.timeofday[shuffle_indices]
+		self.userpop = self.userpop[shuffle_indices]
+		self.usersent = self.usersent[shuffle_indices]
+		self.domainpop = self.domainpop[shuffle_indices]
+		self.domainsent = self.domainsent[shuffle_indices]
+		self.titles = self.titles[shuffle_indices]
+		self.labels = self.labels[shuffle_indices]
+
+		dev_sample_index = -1 * int(FLAGS.dev_sample_size)
+		self.dayofweek_train, self.dayofweek_test = self.dayofweek[:dev_sample_index], self.dayofweek[dev_sample_index:]
+		self.timeofday_train, self.timeofday_test = self.timeofday[:dev_sample_index], self.timeofday[dev_sample_index:]
+		self.userpop_train, self.userpop_test = self.userpop[:dev_sample_index], self.userpop[dev_sample_index:]
+		self.usersent_train, self.usersent_test = self.usersent[:dev_sample_index], self.usersent[dev_sample_index:]
+		self.domainpop_train, self.domainpop_test = self.domainpop[:dev_sample_index], self.domainpop[dev_sample_index:]
+		self.domainsent_train, self.domainsent_test = self.domainsent[:dev_sample_index], self.domainsent[dev_sample_index:]
+		self.titles_train, self.titles_test = self.titles[:dev_sample_index], self.titles[dev_sample_index:]
+		self.labels_train, self.labels_test = self.labels[:dev_sample_index], self.labels[dev_sample_index:]
+
+		print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
+		print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+
 
 def clean_str(string):
 	"""

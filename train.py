@@ -7,6 +7,7 @@ import time
 import datetime
 import data_helpers
 import database
+import predict.py
 from text_cnn import CommentCNN, TitleCNN
 from tensorflow.contrib import learn
 
@@ -44,79 +45,6 @@ print("\nParameters:")
 for attr, value in sorted(FLAGS.__flags.items()):
 	print("{}={}".format(attr.upper(), value))
 print("")
-
-class predictordata:
-	def __init__(session, topic, subreddit, start_time, end_time):  
-		print("Loading data...")
-		print("Loading data...{:d}, {:d}, {:s}".format(start_time, end_time, topic))
-
-
-		threads, sentiments = database.subreddit_and_topic_query(session, topic, subreddit, start_time, end_time)
-		self.dayofweek = []
-		self.timeofday = []
-		self.userpop = []
-		self.usersent = []
-		self.domainpop = []
-		self.domainsent = []
-		self.titles = []
-		self.labels = []
-		for thread, sentiment in threads, sentiments:
-			timeofday = ((thread.time-start_time)%86400) - (430200)
-			self.timeofday.append(timeofday)
-			dayofweek = (((thread.time-start_time)%604800)/86400) - 3
-			self.dayofweek.append(dayofweek)
-
-			self.userpop.append(thread.user_popularity)
-			self.usersent.append(sentiment.user_sentiment)
-			self.domainpop.append(thread.domain_popularity)
-			self.domainsent.append(sentiment.domain_sentiment)
-
-			self.titles.append(thread.title)
-			self.labels.append([thread.upvotes, sentiment.comments_sentiment])
-			
-
-		print ("number of titles")
-		print (len(examples))
-		# Split by words
-		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
-		self.timeofday = np.asarray(self.timeofday).reshape((len(self.timeofday),1))
-		self.userpop = np.asarray(self.userpop).reshape((len(self.userpop),1))
-		self.usersent = np.asarray(self.usersent).reshape((len(self.usersent),1))
-		self.domainpop = np.asarray(self.domainpop).reshape((len(self.domainpop),1))
-		self.domainsent = np.asarray(self.domainsent).reshape((len(self.domainsent),1))
-		self.titles = [clean_str(sent) for sent in self.titles]
-		self.labels = np.concatenate(self.labels, 0)
-
-		max_document_length = max([len(x.split(" ")) for x in self.titles])
-		self.vocab_processor = learn.preprocessing.VocabularyProcessor(59)
-		self.titles = np.array(list(vocab_processor.fit_transform(self.titles)))
-		# Randomly shuffle data
-		np.random.seed(10)
-		shuffle_indices = np.random.permutation(np.arange(len(self.labels)))
-
-		self.dayofweek = self.dayofweek[shuffle_indices]
-		self.timeofday = self.timeofday[shuffle_indices]
-		self.userpop = self.userpop[shuffle_indices]
-		self.usersent = self.usersent[shuffle_indices]
-		self.domainpop = self.domainpop[shuffle_indices]
-		self.domainsent = self.domainsent[shuffle_indices]
-		self.titles = self.titles[shuffle_indices]
-		self.labels = self.labels[shuffle_indices]
-
-		dev_sample_index = -1 * int(FLAGS.dev_sample_size)
-		self.dayofweek_train, self.dayofweek_test = self.dayofweek[:dev_sample_index], self.dayofweek[dev_sample_index:]
-		self.timeofday_train, self.timeofday_test = self.timeofday[:dev_sample_index], self.timeofday[dev_sample_index:]
-		self.userpop_train, self.userpop_test = self.userpop[:dev_sample_index], self.userpop[dev_sample_index:]
-		self.usersent_train, self.usersent_test = self.usersent[:dev_sample_index], self.usersent[dev_sample_index:]
-		self.domainpop_train, self.domainpop_test = self.domainpop[:dev_sample_index], self.domainpop[dev_sample_index:]
-		self.domainsent_train, self.domainsent_test = self.domainsent[:dev_sample_index], self.domainsent[dev_sample_index:]
-		self.titles_train, self.titles_test = self.titles[:dev_sample_index], self.titles[dev_sample_index:]
-		self.labels_train, self.labels_test = self.labels[:dev_sample_index], self.labels[dev_sample_index:]
-
-		print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
-		print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
-
-
 
 
 
@@ -545,27 +473,29 @@ def run_predict(predictobj, target, start_time, stop_time):
 					path = saver.save(sess, checkpoint_prefix, global_step=current_step)
 					print("Saved model checkpoint to {}\n".format(path))
 
-def train_comments_from_db(start_time, stop_time, topic):
-	session = database.makeSession()
+def train_comments_from_db(session, start_time, stop_time, topic):
+
 	x_train, x_dev, y_train, y_dev, vocab_processor = load_comment_vote_set(session, start_time, stop_time, topic)
 	run_comment(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_time, stop_time)
 
-def train_title_votes_from_db(start_time, stop_time, subreddit):
-	session = database.makeSession()
+def train_title_votes_from_db(session, start_time, stop_time, subreddit):
+
 	x_train, x_dev, y_train, y_dev, vocab_processor = load_title_vote_set(session, start_time, stop_time, subreddit)
 	run_title(x_train, x_dev, y_train, y_dev, vocab_processor, subreddit + "votes", start_time, stop_time)
 
-def train_title_sent_from_db(start_time, stop_time, subreddit):
-	session = database.makeSession()
+def train_title_sent_from_db(session, start_time, stop_time, subreddit):
 	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(session, start_time, stop_time, target, title = True, sentiment=True)
 	run(x_train, x_dev, y_train, y_dev, vocab_processor, subreddit + "sentiment", start_time, stop_time)
 
-def predict_from_db(start_time, end_time, subreddit, topic):
-	session = database.makeSession()
-	predictobj = predictor(session, topic, subreddit, start_time, end_time)
+def predict_from_db(session, start_time, end_time, subreddit, topic):
+	
+	predictobj = data_helpers.predictordata(session, topic, subreddit, start_time, end_time)
+	predictobj.process( )
 	run_predict(predictobj, subreddit + topic + "predictor", start_time, end_time)
+if (__name__ == "__main__"):
+	session = database.makeSession()
+	train_comments_from_db(session, 1477977013, 1479600000, "Trump")
 
-
-train_comments_from_db(1479880024, 1480484824, "Trump")
-
-#train_comments_from_db(1479880024, 1480484824, "Trump")
+	predict.predictDomains(session, 1477977013, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
+	predict.predictUsers(session, 1477977013, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
+	#train_comments_from_db(1479880024, 1480484824, "Trump")

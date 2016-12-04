@@ -108,7 +108,7 @@ def testSession():
 	return session
 	
 def makeSession():
-	engine = create_engine('sqlite:///reddit.db')
+	engine = create_engine('sqlite:///reddit.db.bk')
 	Base.metadata.bind = engine
 	DBSession = sessionmaker(bind = engine)
 	session = DBSession()
