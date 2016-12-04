@@ -1,4 +1,5 @@
 from sqlalchemy.sql import func
+from database import Threads, Sentiment
 class prediction:
 	def __init__(self, name, ups, sent, count):
 		self.name = name
