@@ -7,7 +7,7 @@ import time
 import datetime
 import data_helpers
 import database
-import predict.py
+import predict
 from text_cnn import CommentCNN, TitleCNN
 from tensorflow.contrib import learn
 
@@ -31,7 +31,7 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 20, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 2, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 # Misc Parameters
@@ -496,6 +496,6 @@ if (__name__ == "__main__"):
 	session = database.makeSession()
 	train_comments_from_db(session, 1477977013, 1479600000, "Trump")
 
-	predict.predictDomains(session, 1477977013, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
-	predict.predictUsers(session, 1477977013, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
+	predict.predictDomains(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
+	predict.predictUsers(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
 	#train_comments_from_db(1479880024, 1480484824, "Trump")
