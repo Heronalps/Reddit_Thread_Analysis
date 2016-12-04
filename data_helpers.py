@@ -42,7 +42,10 @@ def load_titles_and_votes_DB(session, subreddit, start_time, end_time):
 	print ("number of titles")
 	print (len(examples))
 	# Split by words
-	x_text = [clean_str(sent) for sent in x_text]
+	examples = [clean_str(sent) for sent in examples]
+	labels = np.asarray(labels).reshape((len(labels),1))
+	return [examples, labels]
+
 
 def load_titles_and_sent_DB(session, topic, sentiment, start_time, end_time):
 	"""
@@ -61,12 +64,13 @@ def load_titles_and_sent_DB(session, topic, sentiment, start_time, end_time):
 	print ("number of titles")
 	print (len(examples))
 	# Split by words
-	x_text = [clean_str(sent) for sent in x_text]
+	examples = [clean_str(sent) for sent in examples]
+	labels = np.asarray(labels)
 
 	# Generate labels
 
 	#print(y)
-	return [x_text, y]
+	return [examples, labels]
 
 def load_comments_and_labels_DB(session, topic, start_time, end_time):
 	"""
@@ -77,18 +81,18 @@ def load_comments_and_labels_DB(session, topic, start_time, end_time):
 	negative_examples = []
 	neutral_examples = []
 	positive_threads = database.time_query(session, topic, 1, start_time, end_time)
-	for thread in positive_threads:
+	for thread, _ in positive_threads:
 		for comment in thread.comments:
 				if type(comment).__name__ == "Comment":
 					positive_examples.append(comment.body[0:100])
 	negative_threads = database.time_query(session, topic, -1, start_time, end_time)
 	
-	for thread in negative_threads:
+	for thread, _ in negative_threads:
 		for comment in thread.comments:
 				if type(comment).__name__ == "Comment":
 					negative_examples.append(comment.body[0:100])
 	neutral_threads = database.time_query(session, "Irrelevant", 0, start_time, end_time)
-	for thread in neutral_threads:
+	for thread, _ in neutral_threads:
 		for comment in thread.comments:
 				if type(comment).__name__ == "Comment":
 					neutral_examples.append(comment.body[0:100])

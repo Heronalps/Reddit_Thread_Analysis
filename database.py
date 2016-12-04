@@ -82,6 +82,16 @@ def time_query(session, topic, sentiment, start_time, end_time):
 		threads.append((thread, sent))
 	return threads
 
+def subreddit_and_topic_query(session, topic, subreddit, start_time, end_time):
+	threads = []
+	for thread, sent in session.query(Threads, Sentiment).\
+	filter(Threads.threadid == Sentiment.threadid).\
+	filter(Threads.subreddit == subreddit).\
+	filter(Sentiment.topic==topic).\
+	filter(Threads.time >= start_time).filter(Threads.time < end_time):
+		threads.append((thread, sent))
+	return threads
+
 def subreddit_query(session, subreddit, start_time, end_time):
 	threads = []
 	for thread in session.query(Threads).\
