@@ -1,5 +1,5 @@
 from sqlalchemy.sql import func
-from database import Threads, Sentiment
+from database import Threads, Sentiment, makeSession
 class prediction:
 	def __init__(self, name, ups, sent, count):
 		self.name = name
@@ -25,6 +25,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	preds = []
 	# query training data
 	for name, ups, sent, count in session.query(Threads.username, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.username)).\
+	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
 	group_by(Threads.username).order_by(func.avg(Threads.upvotes).desc()):
@@ -46,20 +47,26 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	unknown = prediction("Unknown", uk_ups, uk_sent, uk_count)
 	#results.append(unkown)
 	# set all test rows to unknown value
-	session.query().\
+	for thread, sent in session.query(Threads, Sentiment).\
+	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
-	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
-	update({Threads.user_popularity : unknown.avg_ups}).\
-	update({Sentiment.user_sentiment : unknown.avg_sent})
+	filter(Threads.time >= test_start).filter(Threads.time < test_end):
+		thread.domain_popularity = u.avg_ups
+		sent.domain_sentiment = u.avg_sent
+	#update({Threads.user_popularity : unknown.avg_ups}).\
+	#update({Sentiment.user_sentiment : unknown.avg_sent})
 	
 	# set all of the top users to their value
 	for u in results:
-		session.query().\
+		for thread, sent in session.query().\
+		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.user == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
-		filter(Threads.time >= test_start).filter(Threads.time < test_end).\
-		update({Threads.user_popularity : u.avg_ups}).\
-		update({Sentiment.user_sentiment : u.avg_sent})
+		filter(Threads.time >= test_start).filter(Threads.time < test_end):
+			thread.domain_popularity = u.avg_ups
+			sent.domain_sentiment = u.avg_sent
+		#update({Threads.user_popularity : u.avg_ups}).\
+		#update({Sentiment.user_sentiment : u.avg_sent})
 	# commit results to db
 	session.commit()
 	
@@ -74,9 +81,11 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	preds = []
 	# query training data
 	for name, ups, sent, count in session.query(Threads.domain, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.domain)).\
+	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
 	group_by(Threads.domain).order_by(func.avg(Threads.upvotes).desc()):
+		#print("Name: [" + name + "] ups: [" + str(ups) + "] count: [" + str(count) + "]")
 		preds.append(prediction(name, ups, sent, count))
 	tot_domains = percent * float(len(preds))
 	results = []
@@ -85,30 +94,39 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	uk_count = 0
 	# learn top domains and their average pop/sent
 	# learn average for unknown domains
+	print("Calculating results")
 	for i in range(len(preds)):
 		if i < tot_domains:
+			#print("Name: [" + preds[i].name + "] ups: [" + str(preds[i].tot_ups) + "] count: [" + str(preds[i].count) + "]")
 			results.append(preds[i])
 		else:
 			uk_ups += preds[i].tot_ups
 			uk_sent += preds[i].tot_sent
 			uk_count += preds[i].count
 	unknown = prediction("Unknown", uk_ups, uk_sent, uk_count)
+	#print("Name: [" + unknown.name + "] ups: [" + str(unknown.tot_ups) + "] count: [" + str(unknown.count) + "]")
 	#results.append(unkown)
 	# set all test rows to unknown value
-	session.query().\
-	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
-	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
-	update({Threads.domain_popularity : unknown.avg_ups}).\
-	update({Sentiment.domain_sentiment : unknown.avg_sent})
 	
+	for thread, sent in session.query(Threads, Sentiment).\
+	filter(Threads.threadid == Sentiment.threadid).\
+	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
+	filter(Threads.time >= test_start).filter(Threads.time < test_end):
+	#update({Threads.domain_popularity: unknown.avg_ups}):
+	#update({Sentiment.domain_sentiment : unknown.avg_sent})
+		thread.domain_popularity = unknown.avg_ups
+		sent.domain_sentiment = unknown.avg_sent
 	# set all of the top domains to their value
 	for u in results:
-		session.query().\
+		for thread, sent in session.query(Threads, Sentiment).\
+		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.domain == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
-		filter(Threads.time >= test_start).filter(Threads.time < test_end).\
-		update({Threads.domain_popularity : u.avg_ups}).\
-		update({Sentiment.domain_sentiment : u.avg_sent})
+		filter(Threads.time >= test_start).filter(Threads.time < test_end):
+			thread.domain_popularity = u.avg_ups
+			sent.domain_sentiment = u.avg_sent
+		#update({Threads.domain_popularity: u.avg_ups})
+		#update({Sentiment.domain_sentiment : u.avg_sent})
 	# commit results to db
 	session.commit()
 
@@ -136,4 +154,7 @@ def predictDomain(session, domain):
 	avg_sent = float(total_sent) / float(count)
 	return (avg_upvotes, avg_sent)
 
+if __name__ == "__main__":
+	session = makeSession()
+	predictDomains(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
 
