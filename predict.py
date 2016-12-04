@@ -27,7 +27,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	for name, ups, sent, count in session.query(Threads.username, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.username)).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
-	group_by(Threads.username).all().order_by(func.avg(Threads.upvotes).desc()):
+	group_by(Threads.username).order_by(func.avg(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
 	tot_users = percent * float(len(preds))
 	results = []
@@ -76,7 +76,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	for name, ups, sent, count in session.query(Threads.domain, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.domain)).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
-	group_by(Threads.domain).all().order_by(func.avg(Threads.upvotes).desc()):
+	group_by(Threads.domain).order_by(func.avg(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
 	tot_domains = percent * float(len(preds))
 	results = []
