@@ -58,7 +58,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	
 	# set all of the top users to their value
 	for u in results:
-		for thread, sent in session.query(Threads, Sentiment).\
+		for thread, sent in session.query().\
 		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.user == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
