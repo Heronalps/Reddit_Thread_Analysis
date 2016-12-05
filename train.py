@@ -8,7 +8,8 @@ import datetime
 import data_helpers
 import database
 import predict
-
+import argparse
+import shutil
 from text_cnn import CommentCNN, TitleCNN, PredictorCNN
 from tensorflow.contrib import learn
 
@@ -21,9 +22,9 @@ tf.flags.DEFINE_string("positive_data_file", "../cnn-text-classification-tf-mast
 tf.flags.DEFINE_string("negative_data_file", "../cnn-text-classification-tf-master-moddified/data/hillonly_old.csv", "Data source for the positive data.")
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("time_layer_size", 40, "Size of the time hidden layer(default: 40)")
-tf.flags.DEFINE_integer("domain_layer_size", 40, "Size of the domain hidden layer(default: 40)")
-tf.flags.DEFINE_integer("user_layer_size", 40, "Size of the user hidden layer(default: 40)")
+tf.flags.DEFINE_integer("time_layer_size", 4, "Size of the time hidden layer(default: 40)")
+tf.flags.DEFINE_integer("domain_layer_size", 4, "Size of the domain hidden layer(default: 40)")
+tf.flags.DEFINE_integer("user_layer_size", 4, "Size of the user hidden layer(default: 40)")
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
@@ -146,7 +147,11 @@ def run_comment(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_ti
 
 			# Output directory for models and summaries
 			timestamp = str(int(time.time()))
+
 			out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", topic + str(start_time)+ "-" + str(stop_time)))
+			if os.path.exists(out_dir):
+				shutil.rmtree(out_dir)
+
 			print("Writing to {}\n".format(out_dir))
 
 			# Summaries for loss and accuracy
@@ -382,6 +387,8 @@ def run_predict(predictobj, target, start_time, stop_time):
 			# Output directory for models and summaries
 			timestamp = str(int(time.time()))
 			out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", target  + str(start_time)+ "-" + str(stop_time)))
+			if os.path.exists(out_dir):
+				shutil.rmtree(out_dir)
 			print("Writing to {}\n".format(out_dir))
 
 			# Summaries for loss and accuracy
@@ -411,6 +418,9 @@ def run_predict(predictobj, target, start_time, stop_time):
 			# Initialize all variables
 			sess.run(tf.initialize_all_variables())
 			print("initialize_all_variables complete")
+			#print(predictobj.labels.shape)
+			#print(predictobj.labels[:,0].shape)
+
 
 			def train_step(titles, labels, dayofweek, timeofday, userpop, usersent, domainpop, domainsent):
 				"""
@@ -430,7 +440,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 				_, step, summaries, loss, accuracy = sess.run(
 					[train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
 					feed_dict)
-				print(loss)
+				#print(loss)
 				time_str = datetime.datetime.now().isoformat()
 				print("{}: step {}, loss {:g}, percent err {:g}".format(time_str, step, loss, accuracy))
 				train_summary_writer.add_summary(summaries, step)
@@ -493,17 +503,37 @@ def train_title_sent_from_db(session, start_time, stop_time, subreddit):
 def predict_from_db(session, start_time, end_time, subreddit, topic):
 	
 	predictobj = data_helpers.predictordata(session, topic, subreddit, start_time, end_time)
-	predictobj.process( )
-	print(np.isnan(predictobj.domainpop))
-	print(np.isnan(predictobj.domainsent))
-	print((predictobj.userpop))
-	print((predictobj.usersent))
+	predictobj.process()
+	#print(np.isnan(predictobj.domainpop))
+	#print(np.isnan(predictobj.domainsent))
+	#print((predictobj.userpop))
+	#print((predictobj.usersent))
+	predictobj.labels = predictobj.labels[:,1]
+	predictobj.labels = predictobj.labels.reshape(len(predictobj.labels),1)
 	run_predict(predictobj, subreddit + topic + "predictor", start_time, end_time)
 
+def parseFile(file, delim):
+	with open(file) as f:
+		l = f.readline()
+	return (int(l.split(delim)[0]),int(l.split(delim)[1]),int(l.split(delim)[2]),int(l.split(delim)[3]),l.split(delim)[4],l.split(delim)[5]) 
 if (__name__ == "__main__"):
+	parser = argparse.ArgumentParser()
+	parser.add_argument("file", help="File that defines trainstart, trainstop, teststart, teststop, subreddit, topic ")
+	parser.add_argument("-c", "--train_comments", help="use this to specify that you want to train comments", action="store_true")
+	parser.add_argument("-d", "--train_domains", help="use this to specify that you want to train doamins", action="store_true")
+	parser.add_argument("-u", "--train_users", help="use this to specify that you want to train users", action="store_true")
+	parser.add_argument("-p", "--train_predictions", help="use this to specify that you want to train predictions", action="store_true")
+	args = parser.parse_args()
+	file = args.file
+	queries = parseFile(file, " ")
 	session = database.makeSession()
-	#train_comments_from_db(session, 1478995200, 1480550401, "Trump")
+	print(queries)
+	if(args.train_comments):
+		train_comments_from_db(session, min(queries[0:4]), max(queries[0,4]), queries[5])
 	#eval.test_comments(session, 1479513600, 1479600000, 1479600000, 1480396213, "Trump", False)
-	predict.predictDomains(session, 1478995200, 1480032000, 1478995200, 1480550401, "news", "Trump", .8)
-	predict.predictUsers(session, 1478995200, 1480032000, 1478995200, 1480550401, "news", "Trump", .8)
-	#predict_from_db(session, 1479600000, 1480396213, "news", "Trump")
+	if (args.train_domains):
+		predict.predictDomains(session, min(queries[0:4]), queries[2], queries[2], queries[3], queries[4], queries[5], .05)
+	if(args.train_users):
+		predict.predictUsers(session, min(queries[0:4]), queries[2], queries[2], queries[3], queries[4], queries[5], .02)
+	if(args.train_predictions):
+		predict_from_db(session, min(queries[0:4]), queries[2], "news", queries[5])

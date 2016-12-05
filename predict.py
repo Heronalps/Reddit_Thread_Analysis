@@ -113,24 +113,35 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	#results.append(unkown)
 	# set all test rows to unknown value
 	print("Calculating domain results")
-	for thread, sent in session.query(Threads, Sentiment).\
+	session.query().\
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
-	filter(Threads.time >= test_start).filter(Threads.time < test_end):
-	#update({Threads.domain_popularity: unknown.avg_ups}):
-	#update({Sentiment.domain_sentiment : unknown.avg_sent})
-		thread.domain_popularity = unknown.avg_ups
-		sent.domain_sentiment = unknown.avg_sent
+	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
+	update({Threads.domain_popularity: unknown.avg_ups})
+	session.query().\
+	filter(Threads.threadid == Sentiment.threadid).\
+	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
+	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
+	update({Sentiment.domain_sentiment : unknown.avg_sent})
+		#thread.domain_popularity = unknown.avg_ups
+		#sent.domain_sentiment = unknown.avg_sent
 	# set all of the top domains to their value
 	print("Updating known domains")
 	for num, u in enumerate(results):
-		for thread, sent in session.query(Threads, Sentiment).\
+		session.query().\
 		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.domain == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
-		filter(Threads.time >= test_start).filter(Threads.time < test_end):
-			thread.domain_popularity = u.avg_ups
-			sent.domain_sentiment = u.avg_sent
+		filter(Threads.time >= test_start).filter(Threads.time < test_end).\
+		update({Threads.domain_popularity: u.avg_ups})
+		session.query().\
+		filter(Threads.threadid == Sentiment.threadid).\
+		filter(Threads.domain == u.name).\
+		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
+		filter(Threads.time >= test_start).filter(Threads.time < test_end).\
+		update({Sentiment.domain_sentiment : u.avg_sent})
+			#thread.domain_popularity = u.avg_ups
+			#sent.domain_sentiment = u.avg_sent
 		print("finished domain {:s}, number {:d}.".format(u.name, num))
 		#update({Threads.domain_popularity: u.avg_ups})
 		#update({Sentiment.domain_sentiment : u.avg_sent})

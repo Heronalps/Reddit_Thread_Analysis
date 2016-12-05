@@ -226,8 +226,8 @@ class PredictorCNN(object):
 		self.usersent = tf.placeholder(tf.float32, [None, 1], name="input_usersent")
 		self.domainpop = tf.placeholder(tf.float32, [None, 1], name="input_domainpop")
 		self.domainsent = tf.placeholder(tf.float32, [None, 1], name="input_domainsent")
-		self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="target_popularity")
-		self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="target_sentiment")
+		self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
+		self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
 		self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
 		# Keeping track of l2 regularization loss (optional)
@@ -358,7 +358,8 @@ class PredictorCNN(object):
 
 		# Accuracy
 		with tf.name_scope("accuracy"):
-			rmsloss = tf.sqrt(tf.reduce_mean(tf.square(tf.sub(self.predictions, self.input_y))))
-			percent_err= tf.divide(rmsloss, self.input_y)
-			self.accuracy = tf.reduce_mean(percent_err, name="percent_error")
-			print (self.accuracy)
+			rmsloss = tf.reduce_mean(tf.sqrt(tf.square(tf.sub(self.predictions, self.input_y))))
+			print(self.input_y)
+			#percent_err= tf.divide(rmsloss, self.input_y)
+			self.accuracy = tf.reduce_mean(rmsloss, name="accuracy")
+			#print (self.accuracy)

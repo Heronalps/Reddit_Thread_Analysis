@@ -239,9 +239,9 @@ def test_comments(session, train_start, train_end, test_start, test_end, topic, 
 			sentiment_score = 0
 		score += sentiment_score
 		#print(threadobj.thread.title)
-	print(score/num)
-		#threadobj.topic.comments_sentiment = sentiment_score
-	#session.commit()
+	#print(score/num)
+		threadobj.topic.comments_sentiment = sentiment_score
+	session.commit()
 
 def test_votes(session, trained_start_time, trained_stop_time, test_start, test_end, subreddit):
 	threadlist = database.subreddit_query(session, subreddit, test_start, test_end)
@@ -280,7 +280,7 @@ def test_predictor(session, topic, subreddit, trained_start_time, trained_stop_t
 if __name__ == '__main__':
 	
 	session = database.makeSession()
-	test_comments(session, 1478995200, 1480550401, 1478476800, 1478606400, "Trump", False)
+	test_comments(session, 1478995200, 1480550401, 1475280001, 1480550401, "Trump", False)
 	#tq = database.subreddit_and_topic_query(session, "Trump", "news", 1479600000, 1480396213)
 	"""count = 0
 	for thread in tq:
