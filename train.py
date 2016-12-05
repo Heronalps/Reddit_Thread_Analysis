@@ -32,7 +32,7 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 1, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 100, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 # Misc Parameters
@@ -504,6 +504,6 @@ if (__name__ == "__main__"):
 	session = database.makeSession()
 	#train_comments_from_db(session, 1477977013, 1479600000, "Trump")
 	#eval.test_comments(session, 1479513600, 1479600000, 1479600000, 1480396213, "Trump", False)
-	predict.predictDomains(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
-	predict.predictUsers(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
+	#predict.predictDomains(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
+	#predict.predictUsers(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
 	predict_from_db(session, 1479600000, 1480396213, "news", "Trump")

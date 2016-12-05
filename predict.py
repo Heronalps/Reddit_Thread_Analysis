@@ -51,19 +51,15 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end):
-<<<<<<< HEAD
-		thread.domain_popularity = unknown.avg_ups
-		sent.domain_sentiment = unknown.avg_sent
-=======
-		thread.user_popularity = u.avg_ups
-		sent.user_sentiment = u.avg_sent
->>>>>>> e00209c90b83155ac444eb44157b2681eea57f5d
+		thread.user_popularity = unknown.avg_ups
+		sent.user_sentiment = unknown.avg_sent
+
 	#update({Threads.user_popularity : unknown.avg_ups}).\
 	#update({Sentiment.user_sentiment : unknown.avg_sent})
 	
 	# set all of the top users to their value
 	for u in results:
-		for thread, sent in session.query().\
+		for thread, sent in session.query(Threads, Sentiment).\
 		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.user == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
