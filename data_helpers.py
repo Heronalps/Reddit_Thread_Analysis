@@ -92,6 +92,14 @@ class predictordata:
 
 		print("Vocabulary Size: {:d}".format(len(self.vocab_processor.vocabulary_)))
 		print("Train/Dev split: {:d}/{:d}".format(len(self.labels_train), len(self.labels_test)))
+		print("userpop: ")
+		print(self.userpop)
+		print("usersent: ")
+		print(self.usersent)
+		print("domainpop: ")
+		print(self.domainpop)
+		print("domainsent: ")
+		print(self.domainsent)
 
 
 def clean_str(string):

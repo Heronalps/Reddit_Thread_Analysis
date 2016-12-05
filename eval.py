@@ -263,18 +263,30 @@ def test_votes(session, trained_start_time, trained_stop_time, test_start, test_
 		threadobj.thread.title_popularity = title_popularity
 	session.commit()
 
-def test_predictor(session, topic, subreddit, trained_start_time, trained_stop_time, test_start, test_end):
+def test_sent_predictor(session, topic, subreddit, trained_start_time, trained_stop_time, test_start, test_end):
 	session = database.makeSession()
 	predictobj = data_helpers.predictordata(session, topic, subreddit, test_start, test_end)
 
-	threadlist = eval_title_sent(subreddit + topic + "predictor", trained_start_time, trained_stop_time, predictobj)
+	threadlist = eval_title_sent(subreddit + topic + "sent_predictor", trained_start_time, trained_stop_time, predictobj)
 
 	for threadID, outputs in predictobj.threadIDs, threadlist:
-		thread, sent = session.query(Threads, Sentiment).\
-		filter(Threads.threadid == threadID).\
-		filter(Threads.threadid == Sentiment.threadid).\
-		filter(Sentiment.topic==topic).update({predicted_popularity : outputs[0]}).\
-		update({predicted_sentiment : outputs[1]})
+		session.execute(update(Sentiment).\
+		values({Sentiment.predicted_sentiment: unknown.avg_sent}).\
+		where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
+		where(Threads.time >= test_start).where(Threads.time < test_end)))
+		session.commit()
+
+def test_pop_predictor(session, topic, subreddit, trained_start_time, trained_stop_time, test_start, test_end):
+	session = database.makeSession()
+	predictobj = data_helpers.predictordata(session, topic, subreddit, test_start, test_end)
+
+	threadlist = eval_title_sent(subreddit + topic + "pop_predictor", trained_start_time, trained_stop_time, predictobj)
+
+	for threadID, outputs in predictobj.threadIDs, threadlist:
+		session.execute(update(Sentiment).\
+		values({Sentiment.predicted_sentiment: unknown.avg_sent}).\
+		where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
+		where(Threads.time >= test_start).where(Threads.time < test_end)))
 		session.commit()
 
 if __name__ == '__main__':

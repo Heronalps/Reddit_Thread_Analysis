@@ -473,7 +473,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 				list(zip(predictobj.titles, predictobj.labels, predictobj.dayofweek, predictobj.timeofday, predictobj.userpop, predictobj.usersent, predictobj.domainpop, predictobj.domainsent)), FLAGS.batch_size, FLAGS.num_epochs)
 			# Training loop. For each batch...
 			for batch in batches:
-				#print (batch)
+				print (batch)
 				titles, labels, dayofweek, timeofday, userpop, usersent, domainpop, domainsent = zip(*batch)
 				train_step(titles, labels, dayofweek, timeofday, userpop, usersent, domainpop, domainsent)
 				#print(y_batch)
@@ -515,7 +515,7 @@ def predict_from_db(session, start_time, end_time, subreddit, topic):
 def parseFile(file, delim):
 	with open(file) as f:
 		l = f.readline()
-	return (int(l.split(delim)[0]),int(l.split(delim)[1]),int(l.split(delim)[2]),int(l.split(delim)[3]),l.split(delim)[4],l.split(delim)[5]) 
+	return (int(l.split(delim)[0]),int(l.split(delim)[1]),int(l.split(delim)[2]),(l.split(delim)[3]),l.split(delim)[4]) 
 if (__name__ == "__main__"):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("file", help="File that defines trainstart, trainstop, teststart, teststop, subreddit, topic ")
@@ -530,10 +530,12 @@ if (__name__ == "__main__"):
 	print(queries)
 	if(args.train_comments):
 		train_comments_from_db(session, min(queries[0:4]), max(queries[0,4]), queries[5])
-	#eval.test_comments(session, 1479513600, 1479600000, 1479600000, 1480396213, "Trump", False)
+	#1475280001 1479600000 1480204800 1480550401
+	#10/1			11/20			11/27 		12/1
+
 	if (args.train_domains):
-		predict.predictDomains(session, min(queries[0:4]), queries[2], queries[2], queries[3], queries[4], queries[5], .05)
+		predict.predictDomains(session, queries[0], queries[1], queries[0], queries[2], queries[3], queries[4], .05)
 	if(args.train_users):
-		predict.predictUsers(session, min(queries[0:4]), queries[2], queries[2], queries[3], queries[4], queries[5], .02)
+		predict.predictUsers(session, queries[0], queries[1], queries[0], queries[2], queries[3], queries[4], .05)
 	if(args.train_predictions):
-		predict_from_db(session, min(queries[0:4]), queries[2], "news", queries[5])
+		predict_from_db(session, queries[0], queries[1],  queries[3], queries[4])
