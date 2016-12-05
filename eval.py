@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, update, select
 import tensorflow as tf
 import numpy as np
 import os
@@ -269,11 +269,13 @@ def test_sent_predictor(session, topic, subreddit, trained_start_time, trained_s
 
 	threadlist = eval_title_sent(subreddit + topic + "sent_predictor", trained_start_time, trained_stop_time, predictobj)
 
-	for threadID, outputs in predictobj.threadIDs, threadlist:
+	for threadID, output in predictobj.threadIDs, threadlist:
 		session.execute(update(Sentiment).\
-		values({Sentiment.predicted_sentiment: unknown.avg_sent}).\
-		where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
-		where(Threads.time >= test_start).where(Threads.time < test_end)))
+		values({Sentiment.predicted_sentiment: output}).\
+		where(Sentiment.threadid == threadID).\
+		where(Sentiment.topic == topic))
+		#where(Sentiment.threadid.in_(select([Threads.threadid]).where(Threads.subreddit == subreddit).\
+		#where(Threads.time >= test_start).where(Threads.time < test_end).as_scalar())))
 		session.commit()
 
 def test_pop_predictor(session, topic, subreddit, trained_start_time, trained_stop_time, test_start, test_end):
@@ -282,11 +284,15 @@ def test_pop_predictor(session, topic, subreddit, trained_start_time, trained_st
 
 	threadlist = eval_title_sent(subreddit + topic + "pop_predictor", trained_start_time, trained_stop_time, predictobj)
 
-	for threadID, outputs in predictobj.threadIDs, threadlist:
+	for threadID, output in predictobj.threadIDs, threadlist:
 		session.execute(update(Sentiment).\
-		values({Sentiment.predicted_sentiment: unknown.avg_sent}).\
-		where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
-		where(Threads.time >= test_start).where(Threads.time < test_end)))
+		values({Sentiment.predicted_popularity: output}).\
+		where(Sentiment.threadid == threadID).\
+		where(Sentiment.topic == topic))
+		#session.execute(update(Sentiment).\
+		#values({Sentiment.predicted_popularity: output}).\
+		#where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
+		#where(Threads.time >= test_start).where(Threads.time < test_end)))
 		session.commit()
 
 if __name__ == '__main__':
