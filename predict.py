@@ -51,8 +51,8 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end):
-		thread.domain_popularity = u.avg_ups
-		sent.domain_sentiment = u.avg_sent
+		thread.user_popularity = u.avg_ups
+		sent.user_sentiment = u.avg_sent
 	#update({Threads.user_popularity : unknown.avg_ups}).\
 	#update({Sentiment.user_sentiment : unknown.avg_sent})
 	
@@ -63,8 +63,8 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 		filter(Threads.user == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 		filter(Threads.time >= test_start).filter(Threads.time < test_end):
-			thread.domain_popularity = u.avg_ups
-			sent.domain_sentiment = u.avg_sent
+			thread.user_popularity = u.avg_ups
+			sent.user_sentiment = u.avg_sent
 		#update({Threads.user_popularity : u.avg_ups}).\
 		#update({Sentiment.user_sentiment : u.avg_sent})
 	# commit results to db
