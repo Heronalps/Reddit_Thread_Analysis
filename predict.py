@@ -118,11 +118,16 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
 	update({Threads.domain_popularity: unknown.avg_ups})
+	Sentiment.update().\
+	values(domain_popularity=unknown.avg_ups).\
+	where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).where(Threads.time >= test_start).where(Threads.time < test_end))
+	"""
 	session.query().\
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
 	update({Sentiment.domain_sentiment : unknown.avg_sent})
+	"""
 		#thread.domain_popularity = unknown.avg_ups
 		#sent.domain_sentiment = unknown.avg_sent
 	# set all of the top domains to their value
