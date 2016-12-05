@@ -34,6 +34,8 @@ class Threads(Base):
 	user_popularity = Column(Float)
 	time_of_day_popularity = Column(Float)
 	time_of_week_popularity = Column(Float)
+	#domain_sentiment = Column(Float)
+	#user_sentiment = Column(Float)
 	
 class Sentiment(Base):
 	__tablename__ = 'sentiments'
