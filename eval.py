@@ -215,6 +215,8 @@ def test_comments(session, train_start, train_end, test_start, test_end, topic, 
 	#print (len(threadobjlist))
 	print("number of threads")
 	print (len(thread_array))
+	score = 0
+	num = len(thread_array)
 	for threadobj in thread_array:
 		if (threadobj.predictions != None):
 			guess_array = threadobj.predictions.tolist()
@@ -235,10 +237,11 @@ def test_comments(session, train_start, train_end, test_start, test_end, topic, 
 			sentiment_score = (positive-negative) /float(positive+negative+irrellevent)
 		else:
 			sentiment_score = 0
+		score += sentiment_score
 		#print(threadobj.thread.title)
-		#print(sentiment_score)
-		threadobj.topic.comments_sentiment = sentiment_score
-	session.commit()
+	print(score/num)
+		#threadobj.topic.comments_sentiment = sentiment_score
+	#session.commit()
 
 def test_votes(session, trained_start_time, trained_stop_time, test_start, test_end, subreddit):
 	threadlist = database.subreddit_query(session, subreddit, test_start, test_end)
@@ -277,9 +280,9 @@ def test_predictor(session, topic, subreddit, trained_start_time, trained_stop_t
 if __name__ == '__main__':
 	
 	session = database.makeSession()
-	test_comments(session, 1477977013, 1479600000, 1477977013, 1479600000, "Trump", False)
-	tq = database.subreddit_and_topic_query(session, "Trump", "news", 1479600000, 1480396213)
-	count = 0
+	test_comments(session, 1478995200, 1480550401, 1478476800, 1478606400, "Trump", False)
+	#tq = database.subreddit_and_topic_query(session, "Trump", "news", 1479600000, 1480396213)
+	"""count = 0
 	for thread in tq:
 		count += 1
 		print("Thread " + str(count))
@@ -291,4 +294,4 @@ if __name__ == '__main__':
 		filter(Threads.time >= 1479600000).filter(Threads.time < 1480396213).\
 		group_by(Threads.domain).order_by(func.avg(Threads.upvotes).desc()):
 
-		print(sent, ups)
+		print(sent, ups)"""

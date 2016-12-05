@@ -502,8 +502,8 @@ def predict_from_db(session, start_time, end_time, subreddit, topic):
 
 if (__name__ == "__main__"):
 	session = database.makeSession()
-	#train_comments_from_db(session, 1477977013, 1479600000, "Trump")
+	#train_comments_from_db(session, 1478995200, 1480550401, "Trump")
 	#eval.test_comments(session, 1479513600, 1479600000, 1479600000, 1480396213, "Trump", False)
-	#predict.predictDomains(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
-	#predict.predictUsers(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
-	predict_from_db(session, 1479600000, 1480396213, "news", "Trump")
+	predict.predictDomains(session, 1478995200, 1480032000, 1478995200, 1480550401, "news", "Trump", .8)
+	predict.predictUsers(session, 1478995200, 1480032000, 1478995200, 1480550401, "news", "Trump", .8)
+	#predict_from_db(session, 1479600000, 1480396213, "news", "Trump")
