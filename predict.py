@@ -55,9 +55,9 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	where(Threads.time >= test_start).where(Threads.time < test_end))
 
 	session.execute(update(Sentiment).\
-	values({Sentiment.user_sentiment: unknown.avg_sent}).\
+	values({Sentiment.user_sentiment: 69}).\
 	where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
-	where(Threads.time >= test_start).where(Threads.time < test_end)))
+	where(Threads.time >= test_start).where(Threads.time < test_end).as_scalar()))
 
 	#update({Threads.user_popularity : unknown.avg_ups}).\
 	#update({Sentiment.user_sentiment : unknown.avg_sent})
@@ -73,9 +73,9 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 
 		print("popularity updated")
 		session.execute(update(Sentiment).\
-		values({Sentiment.user_sentiment: u.avg_sent}).\
+		values({Sentiment.user_sentiment: 69}).\
 		where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).where(Threads.user == u.name).\
-		where(Threads.time >= test_start).where(Threads.time < test_end)))
+		where(Threads.time >= test_start).where(Threads.time < test_end).as_scalar()))
 		print("finished user {:s}, number {:d}.".format(u.name, num))
 		#update({Threads.user_popularity : u.avg_ups}).\
 		#update({Sentiment.user_sentiment : u.avg_sent})
@@ -128,7 +128,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	session.execute(update(Sentiment).\
 	values({Sentiment.domain_sentiment: unknown.avg_sent}).\
 	where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).\
-	where(Threads.time >= test_start).where(Threads.time < test_end)))
+	where(Threads.time >= test_start).where(Threads.time < test_end).as_scalar()))
 	"""
 	session.query().\
 	filter(Threads.threadid == Sentiment.threadid).\
@@ -149,7 +149,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 		session.execute(update(Sentiment).\
 		values({Sentiment.domain_sentiment: u.avg_sent}).\
 		where(Sentiment.threadid == select([Threads.threadid]).where(Threads.subreddit == subreddit).where(Threads.domain == u.name).\
-		where(Threads.time >= test_start).where(Threads.time < test_end)))
+		where(Threads.time >= test_start).where(Threads.time < test_end).as_scalar()))
 			#thread.domain_popularity = u.avg_ups
 			#sent.domain_sentiment = u.avg_sent
 		print("finished domain {:s}, number {:d}.".format(u.name, num))
