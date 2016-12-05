@@ -216,16 +216,16 @@ class PredictorCNN(object):
 	Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
 	"""
 	def __init__(
-	  self, timeofday, sequence_length, num_classes, vocab_size, time_layer_size, user_layer_size,
+	  self, sequence_length, num_classes, vocab_size, time_layer_size, user_layer_size,
 	  domain_layer_size, embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
 
 		# Placeholders for input, output and dropout
-		self.timeofday = tf.placeholder(tf.int32, [None, 1], name="input_timeofday")
-		self.dayofweek = tf.placeholder(tf.int32, [None, 1], name="input_dayofweek")
-		self.userpop = tf.placeholder(tf.int32, [None, 1], name="input_userpop")
-		self.usersent = tf.placeholder(tf.int32, [None, 1], name="input_usersent")
-		self.domainpop = tf.placeholder(tf.int32, [None, 1], name="input_domainpop")
-		self.domainsent = tf.placeholder(tf.int32, [None, 1], name="input_domainsent")
+		self.timeofday = tf.placeholder(tf.float32, [None, 1], name="input_timeofday")
+		self.dayofweek = tf.placeholder(tf.float32, [None, 1], name="input_dayofweek")
+		self.userpop = tf.placeholder(tf.float32, [None, 1], name="input_userpop")
+		self.usersent = tf.placeholder(tf.float32, [None, 1], name="input_usersent")
+		self.domainpop = tf.placeholder(tf.float32, [None, 1], name="input_domainpop")
+		self.domainsent = tf.placeholder(tf.float32, [None, 1], name="input_domainsent")
 		self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="target_popularity")
 		self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="target_sentiment")
 		self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
@@ -270,39 +270,40 @@ class PredictorCNN(object):
 		num_filters_total = num_filters * len(filter_sizes)
 		print(num_filters_total)
 		self.h_pool = tf.concat(3, pooled_outputs)
-		self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
+		self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total],)
 
 		with tf.name_scope("timelayer"):
-			time_vec = tf.concat(0, self.timeofday, self.dayofweek)
+			time_vec = tf.concat(1, [self.timeofday, self.dayofweek])
+			#print( time_vec)
 			t_W = tf.get_variable(
 				"t_W",
 				shape=[2, time_layer_size],
 				initializer=tf.contrib.layers.xavier_initializer())
-			t_b = tf.Variable(tf.constant(0.1, shape=[time_layer_size]), name="time_b")
+			t_b = tf.Variable(tf.constant(0.001, shape=[time_layer_size]), name="time_b")
 			l2_loss += tf.nn.l2_loss(t_W)
 			l2_loss += tf.nn.l2_loss(t_b)
 			h_t = tf.nn.xw_plus_b(time_vec, t_W, t_b)
 			self.hidden_time = tf.tanh(h_t, name="hidden_time")
 
 		with tf.name_scope("userlayer"):
-			user_vec = tf.concat(0, self.userpop, self.usersent)
+			user_vec = tf.concat(1, [self.userpop, self.usersent])
 			u_W = tf.get_variable(
 				"u_W",
 				shape=[2, user_layer_size],
 				initializer=tf.contrib.layers.xavier_initializer())
-			u_b = tf.Variable(tf.constant(0.1, shape=[user_layer_size]), name="user_b")
+			u_b = tf.Variable(tf.constant(0.001, shape=[user_layer_size]), name="user_b")
 			l2_loss += tf.nn.l2_loss(u_W)
 			l2_loss += tf.nn.l2_loss(u_b)
 			h_u = tf.nn.xw_plus_b(user_vec, u_W, u_b)
 			self.hidden_user = tf.tanh(h_u, name="hidden_user")
 
 		with tf.name_scope("domainlayer"):
-			domain_vec = tf.concat(0, self.domainpop, self.domainsent)
+			domain_vec = tf.concat(1, [self.domainpop, self.domainsent])
 			d_W = tf.get_variable(
 				"d_W",
 				shape=[2, domain_layer_size],
 				initializer=tf.contrib.layers.xavier_initializer())
-			d_b = tf.Variable(tf.constant(0.1, shape=[domain_layer_size]), name="domain_b")
+			d_b = tf.Variable(tf.constant(0.001, shape=[domain_layer_size]), name="domain_b")
 			l2_loss += tf.nn.l2_loss(d_W)
 			l2_loss += tf.nn.l2_loss(d_b)
 			h_d = tf.nn.xw_plus_b(domain_vec, d_W, d_b)
@@ -312,16 +313,16 @@ class PredictorCNN(object):
 
 		# Add dropout
 		with tf.name_scope("concat_dropout"):
-			concat = tf.concat(0, self.hidden_time, self.hidden_user, self.hidden_domain, self.h_pool_flat)
-			self.h_drop = tf.nn.dropout(concat, self.dropout_keep_prob)
+			self.concat = tf.concat(1, [self.hidden_time, self.hidden_user, self.hidden_domain, self.h_pool_flat], name="concat")
+			self.h_drop = tf.nn.dropout(self.concat, self.dropout_keep_prob)
 			
 		# Final (unnormalized) scores and predictions
 		with tf.name_scope("Hidden"):
 			h_W = tf.get_variable(
 				"h_W",
-				shape=[num_filters_total, num_filters_total],
+				shape=[num_filters_total+domain_layer_size+user_layer_size+time_layer_size, num_filters_total],
 				initializer=tf.contrib.layers.xavier_initializer())
-			h_b = tf.Variable(tf.constant(0.1, shape=[num_filters_total]), name="h_b")
+			h_b = tf.Variable(tf.constant(0.001, shape=[num_filters_total]), name="h_b")
 			l2_loss += tf.nn.l2_loss(h_W)
 			l2_loss += tf.nn.l2_loss(h_b)
 			#print(self.h_drop)
@@ -339,7 +340,7 @@ class PredictorCNN(object):
 				"W",
 				shape=[num_filters_total, num_classes],
 				initializer=tf.contrib.layers.xavier_initializer())
-			b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
+			b = tf.Variable(tf.constant(0.001, shape=[num_classes]), name="b")
 			l2_loss += tf.nn.l2_loss(W)
 			l2_loss += tf.nn.l2_loss(b)
 			#print(self.h_drop)
@@ -353,7 +354,7 @@ class PredictorCNN(object):
 		with tf.name_scope("loss"):
 			#losses = tf.nn.softmax_cross_entropy_with_logits(self.scores, self.input_y)
 			losses = tf.square(self.scores - self.input_y)
-			self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
+			self.loss = tf.reduce_mean(tf.reduce_mean(losses) + l2_reg_lambda * l2_loss)
 
 		# Accuracy
 		with tf.name_scope("accuracy"):

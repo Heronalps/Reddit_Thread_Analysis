@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+from sqlalchemy.sql import func
 import tensorflow as tf
 import numpy as np
 import os
@@ -270,17 +270,25 @@ def test_predictor(session, topic, subreddit, trained_start_time, trained_stop_t
 		thread, sent = session.query(Threads, Sentiment).\
 		filter(Threads.threadid == threadID).\
 		filter(Threads.threadid == Sentiment.threadid).\
-		filter(Sentiment.topic==topic).update({predicted_popularity = outputs[0]}).\
-		update({{predicted_sentiment = outputs[1]})
+		filter(Sentiment.topic==topic).update({predicted_popularity : outputs[0]}).\
+		update({predicted_sentiment : outputs[1]})
 		session.commit()
 
-
-session = database.makeSession()
-test_votes(session, 1479880024, 1480484824, 1479880024, 1480484824, "news")
-tq = database.subreddit_query(session, "news", 1479880024, 1480484824)
-count = 0
-for thread in tq:
-	count += 1
-	print("Thread " + str(count))
-	print(thread[1].topic + ", " + str(thread[0].title_popularity) + ": [" + thread[0].subreddit + "] [" + (thread[0].title) + "] [" + str(thread[0].time) + "]")
+if __name__ == '__main__':
 	
+	session = database.makeSession()
+	test_comments(session, 1477977013, 1479600000, 1477977013, 1479600000, "Trump", False)
+	tq = database.subreddit_and_topic_query(session, "Trump", "news", 1479600000, 1480396213)
+	count = 0
+	for thread in tq:
+		count += 1
+		print("Thread " + str(count))
+		print(thread[1].topic + ", " + str(thread[1].comments_sentiment) + ": [" + thread[0].subreddit + "] [" + (thread[0].title) + "] [" + str(thread[0].time) + "]")
+	from database import Sentiment, Threads
+	print("sum test")
+	for sent, ups in session.query(func.sum(Sentiment.comments_sentiment), func.sum(Threads.upvotes)).filter(Threads.threadid == Sentiment.threadid).\
+		filter(Threads.subreddit == "news").filter(Sentiment.topic == "Trump").\
+		filter(Threads.time >= 1479600000).filter(Threads.time < 1480396213).\
+		group_by(Threads.domain).order_by(func.avg(Threads.upvotes).desc()):
+
+		print(sent, ups)

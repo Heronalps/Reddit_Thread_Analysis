@@ -8,7 +8,8 @@ import datetime
 import data_helpers
 import database
 import predict
-from text_cnn import CommentCNN, TitleCNN
+
+from text_cnn import CommentCNN, TitleCNN, PredictorCNN
 from tensorflow.contrib import learn
 
 # Parameters
@@ -31,7 +32,7 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 2, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 1, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 # Misc Parameters
@@ -349,9 +350,9 @@ def run_predict(predictobj, target, start_time, stop_time):
 		  log_device_placement=FLAGS.log_device_placement)
 		sess = tf.Session(config=session_conf)
 		with sess.as_default():
-			cnn = preCNN(
-				sequence_length=x_train.shape[1],
-				num_classes=y_train.shape[1],
+			cnn = PredictorCNN(
+				sequence_length=predictobj.titles.shape[1],
+				num_classes=predictobj.labels.shape[1],
 				vocab_size=len(predictobj.vocab_processor.vocabulary_),
 				time_layer_size = FLAGS.time_layer_size, 
 				user_layer_size = FLAGS.user_layer_size,
@@ -366,6 +367,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 			optimizer = tf.train.AdamOptimizer(1e-3)
 			grads_and_vars = optimizer.compute_gradients(cnn.loss)
 			train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
+
 
 			# Keep track of gradient values and sparsity (optional)
 			grad_summaries = []
@@ -428,6 +430,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 				_, step, summaries, loss, accuracy = sess.run(
 					[train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
 					feed_dict)
+				print(loss)
 				time_str = datetime.datetime.now().isoformat()
 				print("{}: step {}, loss {:g}, percent err {:g}".format(time_str, step, loss, accuracy))
 				train_summary_writer.add_summary(summaries, step)
@@ -491,11 +494,16 @@ def predict_from_db(session, start_time, end_time, subreddit, topic):
 	
 	predictobj = data_helpers.predictordata(session, topic, subreddit, start_time, end_time)
 	predictobj.process( )
+	print(np.isnan(predictobj.domainpop))
+	print(np.isnan(predictobj.domainsent))
+	print((predictobj.userpop))
+	print((predictobj.usersent))
 	run_predict(predictobj, subreddit + topic + "predictor", start_time, end_time)
+
 if (__name__ == "__main__"):
 	session = database.makeSession()
-	train_comments_from_db(session, 1477977013, 1479600000, "Trump")
-
+	#train_comments_from_db(session, 1477977013, 1479600000, "Trump")
+	#eval.test_comments(session, 1479513600, 1479600000, 1479600000, 1480396213, "Trump", False)
 	predict.predictDomains(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
 	predict.predictUsers(session, 1479513600, 1479600000, 1479600000, 1480396213, "news", "Trump", .5)
-	#train_comments_from_db(1479880024, 1480484824, "Trump")
+	predict_from_db(session, 1479600000, 1480396213, "news", "Trump")

@@ -3,14 +3,15 @@ import re
 import itertools
 from collections import Counter
 import database
+from tensorflow.contrib import learn
 
 class predictordata:
-	def __init__(session, topic, subreddit, start_time, end_time):  
+	def __init__(self, session, topic, subreddit, start_time, end_time):  
 		print("Loading data...")
 		print("Loading data...{:d}, {:d}, {:s}".format(start_time, end_time, topic))
 
 
-		threads, sentiments = database.subreddit_and_topic_query(session, topic, subreddit, start_time, end_time)
+		threads = database.subreddit_and_topic_query(session, topic, subreddit, start_time, end_time)
 		self.threadIDs = []
 		self.dayofweek = []
 		self.timeofday = []
@@ -21,7 +22,7 @@ class predictordata:
 		self.titles = []
 		self.labels = []
 		self.vocab_processor = None
-		for thread, sentiment in threads, sentiments:
+		for thread, sentiment in threads:
 			self.threadIDs.append(thread.threadid)
 			timeofday = ((thread.time-start_time)%86400) - (430200)
 			self.timeofday.append(timeofday)
@@ -37,10 +38,11 @@ class predictordata:
 			self.labels.append([thread.upvotes, sentiment.comments_sentiment])
 			
 
-		print ("number of titles")
-		print (len(examples))
+		print ("number of titles and lables")
+		print (len(self.titles), len(self.labels))
+
 		# Split by words
-		self.threadIDs = np.asarray(self.threadID).reshape((len(self.threadID),1))
+		self.threadIDs = np.asarray(self.threadIDs).reshape((len(self.threadIDs),1))
 		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
 		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
 		self.timeofday = np.asarray(self.timeofday).reshape((len(self.timeofday),1))
@@ -49,20 +51,21 @@ class predictordata:
 		self.domainpop = np.asarray(self.domainpop).reshape((len(self.domainpop),1))
 		self.domainsent = np.asarray(self.domainsent).reshape((len(self.domainsent),1))
 		self.titles = [clean_str(sent) for sent in self.titles]
-		self.labels = np.concatenate(self.labels, 0)
+		self.labels = np.asarray(self.labels).reshape((len(self.labels),2))
+		#print(self.labels.shape)
 
 		
 
-	def process(vocab = None):
+	def process(self, vocab = None):
 
 		max_document_length = max([len(x.split(" ")) for x in self.titles])
 
 		if (vocab == None):
 			self.vocab_processor = learn.preprocessing.VocabularyProcessor(59)
-			self.titles = np.array(list(vocab_processor.fit_transform(self.titles)))
+			self.titles = np.array(list(self.vocab_processor.fit_transform(self.titles)))
 		else:
 			self.vocab_processor = vocab
-			self.titles = np.array(list(vocab_processor.fit_transform(self.titles)))
+			self.titles = np.array(list(self.vocab_processor.fit_transform(self.titles)))
 
 		np.random.seed(10)
 		shuffle_indices = np.random.permutation(np.arange(len(self.labels)))
@@ -77,7 +80,7 @@ class predictordata:
 		self.titles = self.titles[shuffle_indices]
 		self.labels = self.labels[shuffle_indices]
 
-		dev_sample_index = -1 * int(FLAGS.dev_sample_size)
+		dev_sample_index = -1 * int(10)
 		self.dayofweek_train, self.dayofweek_test = self.dayofweek[:dev_sample_index], self.dayofweek[dev_sample_index:]
 		self.timeofday_train, self.timeofday_test = self.timeofday[:dev_sample_index], self.timeofday[dev_sample_index:]
 		self.userpop_train, self.userpop_test = self.userpop[:dev_sample_index], self.userpop[dev_sample_index:]
@@ -87,8 +90,8 @@ class predictordata:
 		self.titles_train, self.titles_test = self.titles[:dev_sample_index], self.titles[dev_sample_index:]
 		self.labels_train, self.labels_test = self.labels[:dev_sample_index], self.labels[dev_sample_index:]
 
-		print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
-		print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+		print("Vocabulary Size: {:d}".format(len(self.vocab_processor.vocabulary_)))
+		print("Train/Dev split: {:d}/{:d}".format(len(self.labels_train), len(self.labels_test)))
 
 
 def clean_str(string):
