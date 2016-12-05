@@ -113,12 +113,11 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	#results.append(unkown)
 	# set all test rows to unknown value
 	print("Calculating domain results")
-	session.query().\
-	filter(Threads.threadid == Sentiment.threadid).\
-	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
+	session.query(Threads).\
+	filter(Threads.subreddit == subreddit).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
 	update({Threads.domain_popularity: unknown.avg_ups})
-	session.query().\
+	session.query(Threads, Sentiment).\
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end).\
