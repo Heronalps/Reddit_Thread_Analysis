@@ -24,11 +24,11 @@ class prediction:
 def predictUsers(session, train_start, train_end, test_start, test_end, subreddit, topic, percent):
 	preds = []
 	# query training data
-	for name, ups, sent, count in session.query(Threads.username, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.username)).\
+	for name, ups, sent, count in session.query(Threads.user, func.sum(Threads.upvotes), func.sum(Sentiment.comments_sentiment), func.count(Threads.user)).\
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
-	group_by(Threads.username).order_by(func.avg(Threads.upvotes).desc()):
+	group_by(Threads.user).order_by(func.avg(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
 	tot_users = percent * float(len(preds))
 	results = []
@@ -51,14 +51,14 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= test_start).filter(Threads.time < test_end):
-		thread.domain_popularity = u.avg_ups
-		sent.domain_sentiment = u.avg_sent
+		thread.domain_popularity = unknown.avg_ups
+		sent.domain_sentiment = unknown.avg_sent
 	#update({Threads.user_popularity : unknown.avg_ups}).\
 	#update({Sentiment.user_sentiment : unknown.avg_sent})
 	
 	# set all of the top users to their value
 	for u in results:
-		for thread, sent in session.query().\
+		for thread, sent in session.query(Threads, Sentiment).\
 		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.user == u.name).\
 		filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
@@ -134,7 +134,7 @@ def predictUser(session, username):
 	total_ups = 0
 	total_sent = 0
 	count = 0
-	for ups, sent in session.query(Threads.upvotes, Threads.assigned_label).filter(Threads.username == username):
+	for ups, sent in session.query(Threads.upvotes, Threads.assigned_label).filter(Threads.user == username):
 		total_ups += ups
 		total_sent += sent
 		count += 1
