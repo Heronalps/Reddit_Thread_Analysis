@@ -118,12 +118,12 @@ def addThread(session, tpc, sntmnt, thrd):
 	t = session.query(Threads).filter(Threads.threadid == thrd.threadid).one_or_none()
 	#print(str(t))
 	if t is not None:
-		print("Thread [" + toAscii(thrd.title) + "] already in db")
 		s = t.sentiments
 		if tpc in [x.topic for x in s]:
 			print("Topic [" + toAscii(tpc) + "] for thread [" + toAscii(thrd.title) + "] already in db")
 			return
 		else:
+			print("Thread [" + toAscii(thrd.title) + "] already in db, but adding new topic [" + toAscii(tpc) + "] for subreddit [" + toAscii(thrd.subreddit) + "]")
 			newsent = Sentiment(topic=tpc, sentiment = sntmnt)
 			t.sentiments.append(newsent)
 			session.commit()

@@ -5,6 +5,7 @@ import database
 import praw
 import re
 import time
+from sqlalchemy import exists
 
 done = False
 lock = mp.Lock()
@@ -24,6 +25,14 @@ class Thread:
 		self.topic = topic
 		self.sentiment = sentiment
 
+class ExistingThread:
+	def __init__(self, thread, topic, sentiment):
+		self.threadid = thread.id
+		self.topic = topic
+		self.sentiment = sentiment
+		self.title = thread.title
+		self.subreddit = str(thread.subreddit)
+		
 class Query:
 	def __init__(self, topic, sentiment, sub, start, end):
 		self.topic = topic
@@ -69,6 +78,7 @@ def producerFunc(numworkers, rq, queries):
 
 def consumerFunc(rq, wq, limit=200):
 	reddit = praw.Reddit(user_agent="Sentiment Analyzer 1.0 by /u/FacialHare")
+	session = database.makeSession()
 	while True:
 		if (rq.empty() == False):
 			query = rq.get()
@@ -78,9 +88,14 @@ def consumerFunc(rq, wq, limit=200):
 			#print ("found {0} threads".format(len(list(gen))))
 			if gen is not None:
 				for p in gen:
-					thread = Thread(p, query.topic, query.sentiment)
-					print("putting obj on queue")
-					wq.put(thread)
+					if session.query(exists().where(database.Threads.threadid == p.id)).scalar():
+						print("Thread [" + toAscii(p.title) + "] already in db, adding ExistingThread object to queue")
+						thread = ExistingThread(p, query.topic, query.sentiment)
+						wq.put(thread)
+					else:
+						thread = Thread(p, query.topic, query.sentiment)
+						print("putting obj on queue")
+						wq.put(thread)
 
 def testWriterFunc(wq):
 	print("set up test")
@@ -102,7 +117,7 @@ def dbWriterFunc(wq):
 	session = database.makeSession()
 	print("set up DB writer")
 	while True:
-		time.sleep(.001)
+		#time.sleep(.001)
 		if (wq.empty() == False):
 			thread = wq.get()
 			if (thread == "STOP"):
