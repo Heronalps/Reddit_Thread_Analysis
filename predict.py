@@ -28,7 +28,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
-	group_by(Threads.user).order_by(func.avg(Threads.upvotes).desc()):
+	group_by(Threads.user).order_by(func.sum(Threads.upvotes).desc()):
 		preds.append(prediction(name, ups, sent, count))
 	tot_users = percent * float(len(preds))
 	results = []
@@ -40,12 +40,14 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	for i in range(len(preds)):
 		if i < tot_users:
 			results.append(preds[i])
+			print("user{:s} posted {:d} times".format(preds[i].name,preds[i].count))
 		else:
 			uk_ups += preds[i].tot_ups
 			uk_sent += preds[i].tot_sent
 			uk_count += preds[i].count
 	unknown = prediction("Unknown", uk_ups, uk_sent, uk_count)
 	#results.append(unkown)
+	print("Calculating User results")
 	# set all test rows to unknown value
 	for thread, sent in session.query(Threads, Sentiment).\
 	filter(Threads.threadid == Sentiment.threadid).\
@@ -58,7 +60,8 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 	#update({Sentiment.user_sentiment : unknown.avg_sent})
 	
 	# set all of the top users to their value
-	for u in results:
+	print("Updating known users")
+	for num, u in enumerate(results):
 		for thread, sent in session.query(Threads, Sentiment).\
 		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.user == u.name).\
@@ -66,6 +69,7 @@ def predictUsers(session, train_start, train_end, test_start, test_end, subreddi
 		filter(Threads.time >= test_start).filter(Threads.time < test_end):
 			thread.user_popularity = u.avg_ups
 			sent.user_sentiment = u.avg_sent
+		print("finished user {:s}, number {:d}.".format(u.name, num))
 		#update({Threads.user_popularity : u.avg_ups}).\
 		#update({Sentiment.user_sentiment : u.avg_sent})
 	# commit results to db
@@ -85,7 +89,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
 	filter(Threads.time >= train_start).filter(Threads.time < train_end).\
-	group_by(Threads.domain).order_by(func.avg(Threads.upvotes).desc()):
+	group_by(Threads.domain).order_by(func.sum(Threads.upvotes).desc()):
 		#print("Name: [" + name + "] ups: [" + str(ups) + "] count: [" + str(count) + "]")
 		preds.append(prediction(name, ups, sent, count))
 	tot_domains = percent * float(len(preds))
@@ -108,7 +112,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 	#print("Name: [" + unknown.name + "] ups: [" + str(unknown.tot_ups) + "] count: [" + str(unknown.count) + "]")
 	#results.append(unkown)
 	# set all test rows to unknown value
-	
+	print("Calculating domain results")
 	for thread, sent in session.query(Threads, Sentiment).\
 	filter(Threads.threadid == Sentiment.threadid).\
 	filter(Threads.subreddit == subreddit).filter(Sentiment.topic == topic).\
@@ -118,7 +122,8 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 		thread.domain_popularity = unknown.avg_ups
 		sent.domain_sentiment = unknown.avg_sent
 	# set all of the top domains to their value
-	for u in results:
+	print("Updating known domains")
+	for num, u in enumerate(results):
 		for thread, sent in session.query(Threads, Sentiment).\
 		filter(Threads.threadid == Sentiment.threadid).\
 		filter(Threads.domain == u.name).\
@@ -126,6 +131,7 @@ def predictDomains(session, train_start, train_end, test_start, test_end, subred
 		filter(Threads.time >= test_start).filter(Threads.time < test_end):
 			thread.domain_popularity = u.avg_ups
 			sent.domain_sentiment = u.avg_sent
+		print("finished domain {:s}, number {:d}.".format(u.name, num))
 		#update({Threads.domain_popularity: u.avg_ups})
 		#update({Sentiment.domain_sentiment : u.avg_sent})
 	# commit results to db

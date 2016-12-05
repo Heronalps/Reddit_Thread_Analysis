@@ -56,9 +56,9 @@ def parseFile(file, delim):
 		lines = f.readlines()
 	return [Query(l.split(delim)[0],l.split(delim)[1],l.split(delim)[2],l.split(delim)[3],l.split(delim)[4]) for l in lines]
 
-def makeRequest(reddit, query):
+def makeRequest(reddit, query, limit=200):
 	srch = "timestamp:" + query.start + ".." + query.end
-	return reddit.search(srch, subreddit=query.sub, sort='top',syntax='cloudsearch', limit=200)
+	return reddit.search(srch, subreddit=query.sub, sort='top',syntax='cloudsearch', limit=limit)
 
 def producerFunc(numworkers, rq, queries):
 	for query in queries:
@@ -67,14 +67,14 @@ def producerFunc(numworkers, rq, queries):
 	for i in range(numworkers):
 		rq.put("STOP")
 
-def consumerFunc(rq, wq):
+def consumerFunc(rq, wq, limit=200):
 	reddit = praw.Reddit(user_agent="Sentiment Analyzer 1.0 by /u/FacialHare")
 	while True:
 		if (rq.empty() == False):
 			query = rq.get()
 			if (query == "STOP"):
 				return
-			gen = makeRequest(reddit, query)
+			gen = makeRequest(reddit, query, limit)
 			#print ("found {0} threads".format(len(list(gen))))
 			if gen is not None:
 				for p in gen:
@@ -119,6 +119,7 @@ def main(argv):
 	parser.add_argument("-d", "--delim", help="delimiter used in query file (default: \' \')")
 	parser.add_argument("-n", "--numworkers", help="number of worker threads (default: 10)")
 	parser.add_argument("-t", "--test", help="tests opperation and writes data to file")
+	parser.add_argument("-l", "--limit", help="daily thread limit")
 	args = parser.parse_args()
 	
 	file = args.file
@@ -130,6 +131,10 @@ def main(argv):
 		numworkers = int(args.numworkers)
 	else:
 		numworkers = 10
+	if args.limit:
+		limit = int(args.limit)
+	else:
+		limit = 200
 	rq = mp.Queue()
 	wq = mp.Queue()
 	queries = parseFile(file, delim)
@@ -148,7 +153,7 @@ def main(argv):
 
 	consumers = []
 	for i in range(0, numworkers):
-		consumer = mp.Process(target=consumerFunc, args = (rq, wq))
+		consumer = mp.Process(target=consumerFunc, args = (rq, wq, limit))
 		consumers.append(consumer)
 		consumer.start()
 	producer.join()
