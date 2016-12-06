@@ -149,7 +149,7 @@ def eval_predictions(target, trained_start_time, trained_stop_time, predictorobj
 	print("")
 	#print(x_raw)
 	# Map data into vocabulary
-	vocab_path = os.path.join("runs", trainedTopic + str(trained_start_time)+ "-" + str(trained_stop_time), "vocab")
+	vocab_path = os.path.join("runs", target + str(trained_start_time)+ "-" + str(trained_stop_time), "vocab")
 	vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
 	predictorobj.process(vocab_processor)
 
@@ -169,12 +169,12 @@ def eval_predictions(target, trained_start_time, trained_stop_time, predictorobj
 
 			# Get the placeholders from the graph by name
 			input_x = graph.get_operation_by_name("input_x").outputs[0]
-			dayofweek = graph.get_operation_by_name("dayofweek").outputs[0]
-			timeofday = graph.get_operation_by_name("timeofday").outputs[0]
-			userpop = graph.get_operation_by_name("userpop").outputs[0]
-			usersent = graph.get_operation_by_name("usersent").outputs[0]
-			domainpop = graph.get_operation_by_name("domainpop").outputs[0]
-			domainsent = graph.get_operation_by_name("domainsent").outputs[0]
+			dayofweek = graph.get_operation_by_name("input_dayofweek").outputs[0]
+			timeofday = graph.get_operation_by_name("input_timeofday").outputs[0]
+			userpop = graph.get_operation_by_name("input_userpop").outputs[0]
+			usersent = graph.get_operation_by_name("input_usersent").outputs[0]
+			domainpop = graph.get_operation_by_name("input_domainpop").outputs[0]
+			domainsent = graph.get_operation_by_name("input_domainsent").outputs[0]
 			# input_y = graph.get_operation_by_name("input_y").outputs[0]
 			dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
@@ -183,19 +183,29 @@ def eval_predictions(target, trained_start_time, trained_stop_time, predictorobj
 			batches = data_helpers.batch_iter(
 				list(zip(predictorobj.titles, predictorobj.dayofweek,\
 				predictorobj.timeofday, predictorobj.userpop, predictorobj.usersent,\
-				predictorobj.domainpop, predictorobj.domainsent)), FLAGS.batch_size, FLAGS.num_epochs)
+				predictorobj.domainpop, predictorobj.domainsent)), 64, 1, shuffle=False)
 			# Collect the predictions here
 			labels = []
 			for batch in batches:
 				#print (x_test_batch)
 				b_titles, b_dayofweek, b_timeofday, b_userpop, b_usersent, b_domainpop, b_domainsent = zip(*batch)
-				labels.append(sess.run(predictions, {input_x: b_titles, dayofweek: b_dayofweek,\
-				timeofday: b_timeofday, userpop: userpop, usersent: b_usersent, domainpop: b_domainpop,\
-				domainsent: b_domainsent, dropout_keep_prob: 1.0}))
-			
-		labels = np.asarray(labels).reshape((len(labels),1))
+				#print(type(b_dayofweek))
 
-		return labels
+				feed_dict = {
+				input_x: b_titles, 
+				dayofweek: b_dayofweek,
+				timeofday: b_timeofday, 
+				userpop: b_userpop, 
+				usersent: b_usersent, 
+				domainpop: b_domainpop,
+				domainsent: b_domainsent, 
+				dropout_keep_prob: 1.0
+				}
+				labels= labels + (sess.run(predictions, feed_dict).tolist())
+			
+		#labels = np.asarray(labels).reshape((len(labels),1))
+		#print (sum(labels, []))
+		return (sum(labels, []))
 	
 	
 
@@ -267,13 +277,19 @@ def test_sent_predictor(session, topic, subreddit, trained_start_time, trained_s
 	session = database.makeSession()
 	predictobj = data_helpers.predictordata(session, topic, subreddit, test_start, test_end)
 
-	threadlist = eval_title_sent(subreddit + topic + "sent_predictor", trained_start_time, trained_stop_time, predictobj)
+	threadlist = eval_predictions(subreddit + topic + "sent_predictor", trained_start_time, trained_stop_time, predictobj)
+	print(len(predictobj.threadIDs))
+	print(len(threadlist))
+	for threadID, thread, output in zip(predictobj.threadIDs, predictobj.threads, threadlist):
+		#print (threadID, thread[1].threadid, output)
+		thread[1].predicted_sentiment = output
 
-	for threadID, output in predictobj.threadIDs, threadlist:
-		session.execute(update(Sentiment).\
-		values({Sentiment.predicted_sentiment: output}).\
-		where(Sentiment.threadid == threadID).\
-		where(Sentiment.topic == topic))
+		"""session.query(database.Sentiment).filter(database.Sentiment.threadid == threadID).\
+		filter(database.Sentiment.topic == topic).update({database.Sentiment.predicted_sentiment: output})"""
+		"""session.execute(update(database.Sentiment).\
+		values({database.Sentiment.predicted_sentiment: output}).\
+		where(database.Sentiment.threadid == threadID).\
+		where(database.Sentiment.topic == topic))"""
 		#where(Sentiment.threadid.in_(select([Threads.threadid]).where(Threads.subreddit == subreddit).\
 		#where(Threads.time >= test_start).where(Threads.time < test_end).as_scalar())))
 		session.commit()
@@ -283,8 +299,10 @@ def test_pop_predictor(session, topic, subreddit, trained_start_time, trained_st
 	predictobj = data_helpers.predictordata(session, topic, subreddit, test_start, test_end)
 
 	threadlist = eval_title_sent(subreddit + topic + "pop_predictor", trained_start_time, trained_stop_time, predictobj)
-
-	for threadID, output in predictobj.threadIDs, threadlist:
+	print(len(predictobj.threadIDs))
+	print(len(predictobj.threads))
+	print(len(threadlist))
+	for threadID, output in (predictobj.threadIDs, threadlist):
 		session.execute(update(Sentiment).\
 		values({Sentiment.predicted_popularity: output}).\
 		where(Sentiment.threadid == threadID).\
@@ -298,7 +316,8 @@ def test_pop_predictor(session, topic, subreddit, trained_start_time, trained_st
 if __name__ == '__main__':
 	
 	session = database.makeSession()
-	test_comments(session, 1478995200, 1480550401, 1475280001, 1480550401, "Trump", False)
+	test_sent_predictor(session, "Trump", "politics", 1475280001, 1479600000, 1479600000, 1480550401)
+	#test_comments(session, 1478995200, 1480550401, 1475280001, 1480550401, "Trump", False)
 	#tq = database.subreddit_and_topic_query(session, "Trump", "news", 1479600000, 1480396213)
 	"""count = 0
 	for thread in tq:

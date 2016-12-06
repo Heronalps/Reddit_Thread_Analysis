@@ -11,7 +11,7 @@ class predictordata:
 		print("Loading data...{:d}, {:d}, {:s}".format(start_time, end_time, topic))
 
 
-		threads = database.subreddit_and_topic_query(session, topic, subreddit, start_time, end_time)
+		self.threads = database.subreddit_and_topic_query(session, topic, subreddit, start_time, end_time)
 		self.threadIDs = []
 		self.dayofweek = []
 		self.timeofday = []
@@ -22,7 +22,8 @@ class predictordata:
 		self.titles = []
 		self.labels = []
 		self.vocab_processor = None
-		for thread, sentiment in threads:
+		for thread, sentiment in self.threads:
+			#if (len(thread.comments) > 5):
 			self.threadIDs.append(thread.threadid)
 			timeofday = ((thread.time-start_time)%86400) - (430200)
 			self.timeofday.append(timeofday)
@@ -39,10 +40,11 @@ class predictordata:
 			
 
 		print ("number of titles and lables")
-		print (len(self.titles), len(self.labels))
+		print (len(self.titles), len(self.labels), len(self.threads))
 
 		# Split by words
 		self.threadIDs = np.asarray(self.threadIDs).reshape((len(self.threadIDs),1))
+		self.threads = np.asarray(self.threads).reshape((len(self.threads),2))
 		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
 		self.dayofweek = np.asarray(self.dayofweek).reshape((len(self.dayofweek),1))
 		self.timeofday = np.asarray(self.timeofday).reshape((len(self.timeofday),1))
@@ -70,6 +72,7 @@ class predictordata:
 		np.random.seed(10)
 		shuffle_indices = np.random.permutation(np.arange(len(self.labels)))
 
+		self.threads = self.threads[shuffle_indices]
 		self.threadIDs = self.threadIDs[shuffle_indices]
 		self.dayofweek = self.dayofweek[shuffle_indices]
 		self.timeofday = self.timeofday[shuffle_indices]
@@ -79,6 +82,9 @@ class predictordata:
 		self.domainsent = self.domainsent[shuffle_indices]
 		self.titles = self.titles[shuffle_indices]
 		self.labels = self.labels[shuffle_indices]
+		self.avgpop = np.average(self.labels[:,0])
+		self.avgsent = np.average(self.labels[:,1])
+		#print (self.threads)
 
 		dev_sample_index = -1 * int(10)
 		self.dayofweek_train, self.dayofweek_test = self.dayofweek[:dev_sample_index], self.dayofweek[dev_sample_index:]
@@ -92,14 +98,14 @@ class predictordata:
 
 		print("Vocabulary Size: {:d}".format(len(self.vocab_processor.vocabulary_)))
 		print("Train/Dev split: {:d}/{:d}".format(len(self.labels_train), len(self.labels_test)))
-		print("userpop: ")
-		print(self.userpop)
-		print("usersent: ")
-		print(self.usersent)
-		print("domainpop: ")
-		print(self.domainpop)
-		print("domainsent: ")
-		print(self.domainsent)
+		"""print("userpop: ")
+								print(self.userpop)
+								print("usersent: ")
+								print(self.usersent)
+								print("domainpop: ")
+								print(self.domainpop)
+								print("domainsent: ")
+								print(self.domainsent)"""
 
 
 def clean_str(string):

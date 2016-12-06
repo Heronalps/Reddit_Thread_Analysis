@@ -68,7 +68,7 @@ class CommentCNN(object):
 				initializer=tf.contrib.layers.xavier_initializer())
 			h_b = tf.Variable(tf.constant(0.1, shape=[num_filters_total]), name="h_b")
 			l2_loss += tf.nn.l2_loss(h_W)
-			l2_loss += tf.nn.l2_loss(b)
+			l2_loss += tf.nn.l2_loss(h_b)
 			#print(self.h_drop)
 			#rint(h_W)
 			
@@ -85,12 +85,12 @@ class CommentCNN(object):
 				"W",
 				shape=[num_filters_total, num_classes],
 				initializer=tf.contrib.layers.xavier_initializer())
-			b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
+			b_h = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b_h")
 			l2_loss += tf.nn.l2_loss(W)
-			l2_loss += tf.nn.l2_loss(b)
+			l2_loss += tf.nn.l2_loss(b_h)
 			#print(self.h_drop)
 			#print(W)
-			self.scores = tf.nn.xw_plus_b(self.hh_drop, W, b, name="scores")
+			self.scores = tf.nn.xw_plus_b(self.hh_drop, W, b_h, name="scores")
 			self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
 		# CalculateMean cross-entropy loss
@@ -171,7 +171,7 @@ class TitleCNN(object):
 				initializer=tf.contrib.layers.xavier_initializer())
 			h_b = tf.Variable(tf.constant(0.1, shape=[num_filters_total]), name="h_b")
 			l2_loss += tf.nn.l2_loss(h_W)
-			l2_loss += tf.nn.l2_loss(b)
+			l2_loss += tf.nn.l2_loss(h_b)
 			#print(self.h_drop)
 			#rint(h_W)
 			h_s = tf.nn.xw_plus_b(self.h_drop, h_W, h_b, name="hidden_scores")
@@ -187,13 +187,13 @@ class TitleCNN(object):
 				"W",
 				shape=[num_filters_total, num_classes],
 				initializer=tf.contrib.layers.xavier_initializer())
-			b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
+			hd_b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="hd_b")
 			l2_loss += tf.nn.l2_loss(W)
-			l2_loss += tf.nn.l2_loss(b)
+			l2_loss += tf.nn.l2_loss(hd_b)
 			#print(self.h_drop)
 			#print(W)
-			self.scores = tf.nn.xw_plus_b(self.hh_drop, W, b, name="scores")
-			self.predictions = tf.nn.xw_plus_b(self.hh_drop, W, b, name="predictions")
+			self.scores = tf.nn.xw_plus_b(self.hh_drop, W, hd_b, name="scores")
+			self.predictions = tf.nn.xw_plus_b(self.hh_drop, W, hd_b, name="predictions")
 			#print (self.scores)
 			#self.predictions = (self.scores, 1, name="predictions")
 
@@ -220,6 +220,7 @@ class PredictorCNN(object):
 	  domain_layer_size, embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
 
 		# Placeholders for input, output and dropout
+		self.avg = tf.placeholder(tf.float32, name="avg")
 		self.timeofday = tf.placeholder(tf.float32, [None, 1], name="input_timeofday")
 		self.dayofweek = tf.placeholder(tf.float32, [None, 1], name="input_dayofweek")
 		self.userpop = tf.placeholder(tf.float32, [None, 1], name="input_userpop")
@@ -340,20 +341,20 @@ class PredictorCNN(object):
 				"W",
 				shape=[num_filters_total, num_classes],
 				initializer=tf.contrib.layers.xavier_initializer())
-			b = tf.Variable(tf.constant(0.001, shape=[num_classes]), name="b")
+			hd_b = tf.Variable(tf.constant(0.001, shape=[num_classes]), name="hd_b")
 			l2_loss += tf.nn.l2_loss(W)
-			l2_loss += tf.nn.l2_loss(b)
+			l2_loss += tf.nn.l2_loss(hd_b)
 			#print(self.h_drop)
 			#print(W)
-			self.scores = tf.nn.xw_plus_b(self.hh_drop, W, b, name="scores")
-			self.predictions = tf.nn.xw_plus_b(self.hh_drop, W, b, name="predictions")
+			self.scores = tf.nn.xw_plus_b(self.hh_drop, W, hd_b, name="scores")
+			self.predictions = tf.nn.xw_plus_b(self.hh_drop, W, hd_b, name="predictions")
 			#print (self.scores)
 			#self.predictions = (self.scores, 1, name="predictions")
 
 		# CalculateMean cross-entropy loss
 		with tf.name_scope("loss"):
 			#losses = tf.nn.softmax_cross_entropy_with_logits(self.scores, self.input_y)
-			losses = tf.square(self.scores - self.input_y)
+			losses = (tf.square(self.scores - self.input_y))
 			self.loss = tf.reduce_mean(tf.reduce_mean(losses) + l2_reg_lambda * l2_loss)
 
 		# Accuracy

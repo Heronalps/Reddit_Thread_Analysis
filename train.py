@@ -33,7 +33,7 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 100, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 1000, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 # Misc Parameters
@@ -131,7 +131,7 @@ def run_comment(x_train, x_dev, y_train, y_dev, vocab_processor, topic, start_ti
 
 			# Define Training procedure
 			global_step = tf.Variable(0, name="global_step", trainable=False)
-			optimizer = tf.train.AdamOptimizer(1e-3)
+			optimizer = tf.train.AdamOptimizer(1e-2)
 			grads_and_vars = optimizer.compute_gradients(cnn.loss)
 			train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
@@ -272,14 +272,15 @@ def run_title(x_train, x_dev, y_train, y_dev, vocab_processor, target, start_tim
 			# Summaries for loss and accuracy
 			loss_summary = tf.scalar_summary("loss", cnn.loss)
 			acc_summary = tf.scalar_summary("accuracy", cnn.accuracy)
+			predictions_summary = tf.scalar_summary("predictions", cnn.predictions)
 
 			# Train Summaries
-			train_summary_op = tf.merge_summary([loss_summary, acc_summary, grad_summaries_merged])
+			train_summary_op = tf.merge_summary([loss_summary, acc_summary, grad_summaries_merged, predictions_summary])
 			train_summary_dir = os.path.join(out_dir, "summaries", "train")
 			train_summary_writer = tf.train.SummaryWriter(train_summary_dir, sess.graph)
 
 			# Dev summaries
-			dev_summary_op = tf.merge_summary([loss_summary, acc_summary])
+			dev_summary_op = tf.merge_summary([loss_summary, acc_summary, predictions_summary])
 			dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
 			dev_summary_writer = tf.train.SummaryWriter(dev_summary_dir, sess.graph)
 
@@ -348,7 +349,7 @@ def run_title(x_train, x_dev, y_train, y_dev, vocab_processor, target, start_tim
 					path = saver.save(sess, checkpoint_prefix, global_step=current_step)
 					print("Saved model checkpoint to {}\n".format(path))
 
-def run_predict(predictobj, target, start_time, stop_time):
+def run_predict(predictobj, avg, target, start_time, stop_time):
 	with tf.Graph().as_default():
 		session_conf = tf.ConfigProto(
 		  allow_soft_placement=FLAGS.allow_soft_placement,
@@ -427,6 +428,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 				A single training step
 				"""
 				feed_dict = {
+					cnn.avg: avg,
 					cnn.input_x: titles,
 					cnn.input_y: labels,
 					cnn.dayofweek: dayofweek,
@@ -450,6 +452,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 				Evaluates model on a dev set
 				"""
 				feed_dict = {
+					cnn.avg: avg,
 					cnn.input_x: titles,
 					cnn.input_y: labels,
 					cnn.dayofweek: dayofweek,
@@ -464,7 +467,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 					[global_step, dev_summary_op, cnn.loss, cnn.accuracy],
 					feed_dict)
 				time_str = datetime.datetime.now().isoformat()
-				print("{}: step {}, loss {:g}, percent err {:g}".format(time_str, step, loss, accuracy))
+				print("{}: step {}, loss {:g}, R2 {:g}".format(time_str, step, loss, accuracy))
 				if writer:
 					writer.add_summary(summaries, step)
 
@@ -473,7 +476,7 @@ def run_predict(predictobj, target, start_time, stop_time):
 				list(zip(predictobj.titles, predictobj.labels, predictobj.dayofweek, predictobj.timeofday, predictobj.userpop, predictobj.usersent, predictobj.domainpop, predictobj.domainsent)), FLAGS.batch_size, FLAGS.num_epochs)
 			# Training loop. For each batch...
 			for batch in batches:
-				print (batch)
+				#print (batch)
 				titles, labels, dayofweek, timeofday, userpop, usersent, domainpop, domainsent = zip(*batch)
 				train_step(titles, labels, dayofweek, timeofday, userpop, usersent, domainpop, domainsent)
 				#print(y_batch)
@@ -500,7 +503,7 @@ def train_title_sent_from_db(session, start_time, stop_time, subreddit):
 	x_train, x_dev, y_train, y_dev, vocab_processor = load_train_set(session, start_time, stop_time, target, title = True, sentiment=True)
 	run(x_train, x_dev, y_train, y_dev, vocab_processor, subreddit + "sentiment", start_time, stop_time)
 
-def predict_from_db(session, start_time, end_time, subreddit, topic):
+def predict_sent_from_db(session, start_time, end_time, subreddit, topic):
 	
 	predictobj = data_helpers.predictordata(session, topic, subreddit, start_time, end_time)
 	predictobj.process()
@@ -510,7 +513,20 @@ def predict_from_db(session, start_time, end_time, subreddit, topic):
 	#print((predictobj.usersent))
 	predictobj.labels = predictobj.labels[:,1]
 	predictobj.labels = predictobj.labels.reshape(len(predictobj.labels),1)
-	run_predict(predictobj, subreddit + topic + "predictor", start_time, end_time)
+	run_predict(predictobj, predictobj.avgsent, subreddit + topic + "sent_predictor", start_time, end_time)
+
+
+def predict_pop_from_db(session, start_time, end_time, subreddit, topic):
+	
+	predictobj = data_helpers.predictordata(session, topic, subreddit, start_time, end_time)
+	predictobj.process()
+	#print(np.isnan(predictobj.domainpop))
+	#print(np.isnan(predictobj.domainsent))
+	#print((predictobj.userpop))
+	#print((predictobj.usersent))
+	predictobj.labels = predictobj.labels[:,0]
+	predictobj.labels = predictobj.labels.reshape(len(predictobj.labels),1)
+	run_predict(predictobj, predictobj.avgpop,  subreddit + topic + "pop_predictor", start_time, end_time)
 
 def parseFile(file, delim):
 	with open(file) as f:
@@ -529,7 +545,7 @@ if (__name__ == "__main__"):
 	session = database.makeSession()
 	print(queries)
 	if(args.train_comments):
-		train_comments_from_db(session, min(queries[0:4]), max(queries[0,4]), queries[5])
+		train_comments_from_db(session, 1477977013, 1479600000, queries[4])
 	#1475280001 1479600000 1480204800 1480550401
 	#10/1			11/20			11/27 		12/1
 
@@ -538,4 +554,4 @@ if (__name__ == "__main__"):
 	if(args.train_users):
 		predict.predictUsers(session, queries[0], queries[1], queries[0], queries[2], queries[3], queries[4], .05)
 	if(args.train_predictions):
-		predict_from_db(session, queries[0], queries[1],  queries[3], queries[4])
+		predict_sent_from_db(session, queries[0], queries[1],  queries[3], queries[4])
